@@ -125,7 +125,7 @@ export default function CommunitiesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCommunities.map((community) => (
             <CommunityCard 
-                key={community.id} 
+                key={community.slug} 
                 community={community} 
                 onJoin={onJoin} 
                 isJoining={joiningSlug === community.slug}

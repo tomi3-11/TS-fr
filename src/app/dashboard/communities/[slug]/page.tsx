@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation"; // To get [slug]
+import { useParams } from "next/navigation"; 
 import { CommunityService } from "@/services/community.service";
 import { PostService } from "@/services/post.service";
 import { Community } from "@/types/community";
@@ -9,6 +9,7 @@ import { Post } from "@/types/post";
 import { PostCard } from "@/components/posts/PostCard";
 import { Button } from "@/components/ui/Button";
 import { Loader2, Users, PenSquare } from "lucide-react";
+import { CreatePostModal } from "@/components/posts/CreatePostModal";
 
 export default function CommunityDetailPage() {
   const params = useParams();
@@ -17,6 +18,7 @@ export default function CommunityDetailPage() {
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadData() {
@@ -47,8 +49,17 @@ export default function CommunityDetailPage() {
     try {
       await PostService.vote(postId, value);
     } catch (error) {
-      // Revert if failed (optional, but good practice)
       console.error("Vote failed");
+    }
+  };
+
+  const handleCreatePost = async (data: any) => {
+    try {
+      const newPost = await PostService.create(slug, data);
+      setPosts([newPost, ...posts]); // Add to top of list
+      setIsCreateModalOpen(false);
+    } catch (error) {
+      console.error("Failed to create post", error);
     }
   };
 
@@ -81,8 +92,8 @@ export default function CommunityDetailPage() {
             </div>
           </div>
           <div className="flex items-start">
-             {/* We will add a "Join/Leave" button here later */}
-             <Button>
+             {/* FIX: Corrected onClick handler */}
+             <Button onClick={() => setIsCreateModalOpen(true)}>
                 <PenSquare className="h-4 w-4 mr-2" />
                 Create Post
              </Button>
@@ -108,6 +119,13 @@ export default function CommunityDetailPage() {
           </div>
         )}
       </div>
+
+      {/* FIX: Added the Modal Component here so it actually renders */}
+      <CreatePostModal 
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSubmit={handleCreatePost}
+      />
     </div>
   );
 }
