@@ -11,10 +11,9 @@ import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AuthService } from "@/services/auth.service";
 
-// 1. Validation Schema
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
-  password: z.string().min(6, { message: "Password must be at least 6 characters." }),
+  password: z.string().min(1, { message: "Password is required." }),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -24,28 +23,20 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
-  // 2. Form Setup
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
   });
 
-  // 3. Submit Handler
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     setServerError(null);
-    
     try {
       const response = await AuthService.login(data);
       console.log("Login Success:", response);
-      
-      // TODO: Save tokens to Context/Storage here (Part 3)
-      
-      // Temporary Redirect for testing
+      // We will add Context saving in the next step
       router.push("/"); 
-      
     } catch (error: any) {
-      // Handle API errors gracefully
-      const message = error.response?.data?.message || "Something went wrong. Please try again.";
+      const message = error.response?.data?.message || "Invalid email or password.";
       setServerError(message);
     } finally {
       setIsLoading(false);
@@ -55,9 +46,11 @@ export default function LoginPage() {
   return (
     <>
       <div className="flex flex-col space-y-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+          Welcome back
+        </h1>
         <p className="text-sm text-slate-500">
-          Enter your email to sign in to your account
+          Enter your credentials to access your account
         </p>
       </div>
 
@@ -89,20 +82,21 @@ export default function LoginPage() {
               />
               <Link 
                 href="/auth/forgot-password" 
-                className="text-xs text-indigo-600 hover:text-indigo-500 font-medium justify-self-end"
+                className="text-xs text-indigo-600 hover:text-indigo-500 font-medium justify-self-end transition-colors"
               >
                 Forgot password?
               </Link>
             </div>
 
             {serverError && (
-              <div className="p-3 text-sm text-red-500 bg-red-50 border border-red-200 rounded-md">
+              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md animate-in fade-in slide-in-from-top-1">
                 {serverError}
               </div>
             )}
 
-            <Button type="submit" isLoading={isLoading}>
-              Sign In with Email
+            {/* FIX 5: Simplified Text */}
+            <Button type="submit" isLoading={isLoading} className="w-full">
+              Sign In
             </Button>
           </div>
         </form>
