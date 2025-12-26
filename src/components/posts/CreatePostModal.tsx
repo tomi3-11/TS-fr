@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -9,8 +8,9 @@ import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 import { FileText, MessageSquare } from "lucide-react";
+import { useEffect } from "react"; // Import useEffect
 
-// Validation Schema
+// ... Schema definitions remain the same ...
 const createPostSchema = z.object({
   title: z.string().min(5, "Title must be at least 5 characters").max(100),
   content: z.string().min(20, "Content must be at least 20 characters"),
@@ -26,18 +26,37 @@ interface CreatePostModalProps {
 }
 
 export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalProps) {
-  const { register, handleSubmit, setValue, watch, formState: { errors, isSubmitting } } = useForm<CreatePostFormValues>({
+  const { register, handleSubmit, setValue, watch, reset, formState: { errors, isSubmitting } } = useForm<CreatePostFormValues>({
     resolver: zodResolver(createPostSchema),
     defaultValues: {
-      post_type: "discussion" // Default
+      post_type: "discussion",
+      title: "",
+      content: ""
     }
   });
 
   const postType = watch("post_type");
 
+  // STRICT RESET: Wipes the form clean every time the modal opens.
+  useEffect(() => {
+    if (isOpen) {
+      reset({ 
+        post_type: "discussion", 
+        title: "", 
+        content: "" 
+      });
+    }
+  }, [isOpen, reset]);
+
+  const handleFormSubmit = async (data: CreatePostFormValues) => {
+    await onSubmit(data);
+    reset(); // Double tap: clear after submit too
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Create New Post">
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* Update onSubmit to use our wrapper */}
+      <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
         
         {/* Type Selector (Tabs) */}
         <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg">
@@ -69,27 +88,24 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
           </button>
         </div>
 
-        {/* Title Input */}
+        {/* Inputs */}
         <Input 
           label="Title" 
-          placeholder={postType === "proposal" ? "e.g., Solar Powered Traffic Lights" : "e.g., Best framework for health apps?"}
+          placeholder="Enter a descriptive title"
           className="text-slate-900 placeholder:text-slate-400"
           error={errors.title?.message}
           {...register("title")}
         />
         
-        {/* Content Textarea */}
         <div className="space-y-2">
-          <label className="text-sm font-medium text-slate-700">
-            {postType === "proposal" ? "Proposal Details" : "Discussion Content"}
-          </label>
+          <label className="text-sm font-medium text-slate-700">Content</label>
           <textarea
             className={cn(
               "flex min-h-[150px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-50",
               "text-slate-900 placeholder:text-slate-400",
               errors.content && "border-red-500 focus-visible:ring-red-500"
             )}
-            placeholder="Share your thoughts..."
+            placeholder="Share your detailed thoughts here..."
             {...register("content")}
           />
           {errors.content && (
@@ -102,7 +118,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit }: CreatePostModalPr
               Cancel
             </Button>
             <Button type="submit" isLoading={isSubmitting}>
-              Post {postType === "proposal" ? "Proposal" : "Discussion"}
+              Post
             </Button>
         </div>
       </form>

@@ -10,10 +10,12 @@ import { PostCard } from "@/components/posts/PostCard";
 import { Button } from "@/components/ui/Button";
 import { Loader2, Users, PenSquare } from "lucide-react";
 import { CreatePostModal } from "@/components/posts/CreatePostModal";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CommunityDetailPage() {
   const params = useParams();
   const slug = params.slug as string;
+  const { user } = useAuth();
 
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -38,26 +40,98 @@ export default function CommunityDetailPage() {
     loadData();
   }, [slug]);
 
-  const handleVote = async (postId: string, value: 1 | -1) => {
-    // Optimistic Update
+  const handleVote = async (postId: string, intent: 1 | -1) => {
+    // 1. Find the post to check its current state
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    // Default to 0 if undefined
+    const currentVote = post.user_vote || 0; 
+    let newScore = post.score;
+    let newVote = currentVote;
+
+    // 2. Calculate the Logic (Mirroring Backend)
+    if (intent === 1) {
+       // User clicked UP
+       if (currentVote === 1) {
+          // Already UP? Remove it (Toggle off)
+          newVote = 0;
+          newScore -= 1;
+       } else if (currentVote === -1) {
+          // Was DOWN? Switch to UP (+2 swing)
+          newVote = 1;
+          newScore += 2;
+       } else {
+          // Was Neutral? Vote UP
+          newVote = 1;
+          newScore += 1;
+       }
+    } else {
+       // User clicked DOWN
+       if (currentVote === -1) {
+          // Already DOWN? Remove it (Toggle off)
+          newVote = 0;
+          newScore += 1;
+       } else if (currentVote === 1) {
+          // Was UP? Switch to DOWN (-2 swing)
+          newVote = -1;
+          newScore -= 2;
+       } else {
+          // Was Neutral? Vote DOWN
+          newVote = -1;
+          newScore -= 1;
+       }
+    }
+
+    // 3. Optimistic UI Update
     setPosts(currentPosts => 
       currentPosts.map(p => 
-        p.id === postId ? { ...p, score: p.score + value } : p
+        p.id === postId ? { ...p, score: newScore, user_vote: newVote } : p
       )
     );
-    // Call API
+
+    // 4. Call API
     try {
-      await PostService.vote(postId, value);
+      await PostService.vote(postId, intent);
     } catch (error) {
-      console.error("Vote failed");
+      console.error("Vote failed, reverting...");
+      // Ideally revert state here if API fails
+      setPosts(currentPosts => 
+        currentPosts.map(p => 
+          p.id === postId ? { ...p, score: post.score, user_vote: post.user_vote } : p
+        )
+      );
     }
   };
 
+  // ... imports
+
   const handleCreatePost = async (data: any) => {
     try {
-      const newPost = await PostService.create(slug, data);
-      setPosts([newPost, ...posts]); // Add to top of list
+      // 1. Send data to API to create the record
+      const apiResponse = await PostService.create(slug, data);
+      
+      // 2. MANUAL CONSTRUCTION (Crucial for UI Persistence)
+      // We do NOT re-fetch. We merge the API response (ID, Date) 
+      // with the FORM DATA (Title, Content) to guarantee it shows up.
+      const newPost: Post = {
+        id: apiResponse.id || `temp-${Date.now()}`,
+        title: data.title,         // <--- Forced from Form
+        content: data.content,     // <--- Forced from Form (Fixes missing description)
+        post_type: data.post_type, // <--- Forced from Form
+        author: user?.username || "Me",
+        score: 0,
+        user_vote: 0,
+        created_at: new Date().toISOString(),
+        community: slug
+      };
+
+      // 3. Prepend to the list
+      setPosts([newPost, ...posts]); 
+      
+      // 4. Close Modal
       setIsCreateModalOpen(false);
+      
     } catch (error) {
       console.error("Failed to create post", error);
     }
@@ -106,9 +180,10 @@ export default function CommunityDetailPage() {
         <h2 className="text-lg font-bold text-slate-900 mb-4">Discussions & Proposals</h2>
         
         {posts.length > 0 ? (
-          posts.map(post => (
+          // FIX: Added 'index' as a fallback to prevent "unique key" crashes
+          posts.map((post, index) => (
             <PostCard 
-              key={post.id} 
+              key={post.id || `post-${index}`} // <--- The Fix
               post={post} 
               onVote={handleVote} 
             />
