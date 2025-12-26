@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from "react";
 import { CommunityService } from "@/services/community.service";
-import { Community, CreateCommunityPayload } from "@/types/community";
+import { Community } from "@/types/community";
 import { CommunityCard } from "@/components/communities/CommunityCard";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { cn } from "@/lib/utils";
 import { Plus, Search, Loader2, Sparkles } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils"
 
-// Validation for Creating Community
+// Validation Schema
 const createCommunitySchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
   description: z.string().min(10, "Description must be at least 10 characters"),
@@ -23,19 +23,17 @@ const createCommunitySchema = z.object({
 type CreateFormValues = z.infer<typeof createCommunitySchema>;
 
 export default function CommunitiesPage() {
-  const router = useRouter();
   const [communities, setCommunities] = useState<Community[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [joiningSlug, setJoiningSlug] = useState<string | null>(null);
 
-  // Form Hooks
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<CreateFormValues>({
     resolver: zodResolver(createCommunitySchema),
   });
 
-  // 1. Fetch Data
+  // 1. CLEAN FETCH: No local storage merging. Trust the API.
   const fetchCommunities = async () => {
     try {
       const data = await CommunityService.getAll();
@@ -51,37 +49,56 @@ export default function CommunitiesPage() {
     fetchCommunities();
   }, []);
 
-  // 2. Create Handler
+  // 2. CLEAN CREATE: Optimistic update
   const onCreateSubmit = async (data: CreateFormValues) => {
     try {
       const newCommunity = await CommunityService.create(data);
-      setCommunities([newCommunity, ...communities]); // Optimistic update
+      // We assume the creator is a member
+      const communityWithState = { ...newCommunity, is_member: true, member_count: 1 };
+      setCommunities([communityWithState, ...communities]);
       setIsModalOpen(false);
       reset();
     } catch (error) {
       console.error("Failed to create", error);
-      // Ideally show toast error here
     }
   };
 
-  // 3. Join Handler
+  // 3. CLEAN JOIN: Optimistic update only. 
+  // We accept that this resets on refresh until the Backend API is fixed.
   const onJoin = async (slug: string) => {
     setJoiningSlug(slug);
     try {
       await CommunityService.join(slug);
-      // Show success message or redirect
-      router.push(`/dashboard/communities/${slug}`);
+
+      // Update UI state immediately for feedback
+      setCommunities(currentList => 
+        currentList.map(c => {
+          if (c.slug === slug) {
+            // If already member, do nothing. Else flip to true and increment.
+            if (c.is_member) return c;
+            return {
+              ...c,
+              is_member: true,
+              member_count: (c.member_count || 0) + 1
+            };
+          }
+          return c;
+        })
+      );
     } catch (error: any) {
-        if(error.response?.status === 400) {
-            // Already a member? Just go there.
-            router.push(`/dashboard/communities/${slug}`);
+        // Handle "Already Joined" (400) by updating UI state anyway
+        if (error.response && error.response.status === 400) {
+            setCommunities(currentList => 
+                currentList.map(c => c.slug === slug ? { ...c, is_member: true } : c)
+            );
+        } else {
+            console.error("Join failed", error);
         }
     } finally {
       setJoiningSlug(null);
     }
   };
 
-  // 4. Filter Logic
   const filteredCommunities = communities.filter(c => 
     (c.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
     (c.description || "").toLowerCase().includes(searchQuery.toLowerCase())
@@ -89,7 +106,7 @@ export default function CommunitiesPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
-      {/* Header Section */}
+      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Communities</h1>
@@ -102,7 +119,7 @@ export default function CommunitiesPage() {
         </Button>
       </div>
 
-      {/* Search Bar */}
+      {/* Search */}
       <div className="relative max-w-lg">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search className="h-5 w-5 text-slate-400" />
@@ -110,13 +127,13 @@ export default function CommunitiesPage() {
         <input
           type="text"
           placeholder="Search communities..."
-          className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm"
+          className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-all shadow-sm text-slate-900"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
-      {/* Content Grid */}
+      {/* Grid */}
       {isLoading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
@@ -149,7 +166,7 @@ export default function CommunitiesPage() {
         </div>
       )}
 
-     {/* Create Modal */}
+      {/* Create Modal */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
@@ -159,7 +176,7 @@ export default function CommunitiesPage() {
           <Input 
             label="Community Name" 
             placeholder="e.g. Nairobi Health Tech" 
-            className="text-slate-900 placeholder:text-slate-400" // FIX: Darker text
+            className="text-slate-900 placeholder:text-slate-400"
             error={errors.name?.message}
             {...register("name")}
           />
@@ -169,7 +186,7 @@ export default function CommunitiesPage() {
             <textarea
               className={cn(
                 "flex min-h-[100px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-50",
-                "text-slate-900 placeholder:text-slate-400", // FIX: Darker text
+                "text-slate-900 placeholder:text-slate-400",
                 errors.description && "border-red-500 focus-visible:ring-red-500"
               )}
               placeholder="What is this community about? e.g. solving traffic congestion..."

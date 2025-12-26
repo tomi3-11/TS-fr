@@ -34,22 +34,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           api.defaults.headers.Authorization = `Bearer ${accessToken}`;
           
           // Fetch user profile to verify token is valid
-          // We need to add this endpoint to AuthService later, but for now we assume validity
-          // Or if you have a /me endpoint, we call it here.
-          // Based on your docs: GET /api/v1/auth/user/
+          // If this fails with 401 or 500, we must clear the session
           const { data } = await api.get("/api/v1/auth/user/");
           setUser(data);
           
-        } catch (error) {
-          console.error("Session expired or invalid:", error);
-          logout(); // Clear invalid tokens
+        } catch (error: any) {
+          console.error("Session check failed:", error);
+
+          // FIX: Handle 500 (Server Error) and 401 (Unauthorized)
+          // If the backend crashes (500) on this specific endpoint, it usually means 
+          // the token is malformed or the user state is corrupted.
+          if (error.response?.status === 401 || error.response?.status === 500) {
+              console.warn("Invalid token or server error. Forcing logout.");
+              // Manually clear cookies here to ensure clean slate before calling logout logic
+              Cookies.remove("access_token");
+              Cookies.remove("refresh_token");
+              delete api.defaults.headers.Authorization;
+              setUser(null);
+              router.push("/auth/login");
+          }
         }
       }
       setIsLoading(false);
     }
 
     loadUserFromCookies();
-  }, []);
+  }, [router]);
 
   // 2. Login Action
   const login = async (payload: LoginPayload) => {
@@ -80,9 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Register
       await AuthService.register(payload);
       
-      // Auto-login after registration (Optional, but good UX)
-      // Or redirect to login page. Your flow: "User fills details -> Login"
-      // Let's redirect to login for safety as per your initial request description.
+      // Redirect to login page
       router.push("/auth/login?registered=true");
       
     } catch (error) {

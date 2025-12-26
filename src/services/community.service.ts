@@ -18,7 +18,10 @@ export const CommunityService = {
   },
 
   async join(slug: string) {
-    const response = await api.post<{ message: string }>(`/api/v1/communities/${slug}/join/`);
+    const response = await api.post<{ message: string }>(
+      `/api/v1/communities/${slug}/join/`, 
+      {} 
+    );
     return response.data;
   },
 

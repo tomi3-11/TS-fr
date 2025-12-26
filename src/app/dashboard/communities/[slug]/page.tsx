@@ -8,136 +8,80 @@ import { Community } from "@/types/community";
 import { Post } from "@/types/post";
 import { PostCard } from "@/components/posts/PostCard";
 import { Button } from "@/components/ui/Button";
-import { Loader2, Users, PenSquare } from "lucide-react";
+import { Loader2, Users, PenSquare, LayoutList, FileText, MessageSquare } from "lucide-react";
 import { CreatePostModal } from "@/components/posts/CreatePostModal";
-import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 export default function CommunityDetailPage() {
   const params = useParams();
-  const slug = params.slug as string;
-  const { user } = useAuth();
+  const slug = params.slug as string; // THIS is what we need to pass
 
   const [community, setCommunity] = useState<Community | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  
+  const [activeFilter, setActiveFilter] = useState<"proposal" | "discussion" | null>(null);
 
   useEffect(() => {
     async function loadData() {
+      setIsLoading(true);
       try {
         const [commData, postsData] = await Promise.all([
           CommunityService.getOne(slug),
-          PostService.getByCommunity(slug)
+          PostService.getByCommunity(slug, activeFilter || undefined)
         ]);
         setCommunity(commData);
-        setPosts(postsData);
+        setPosts(postsData); // No need for complex mapping anymore
       } catch (error) {
-        console.error("Failed to load community", error);
+        console.error("Failed to load data", error);
       } finally {
         setIsLoading(false);
       }
     }
     loadData();
-  }, [slug]);
+  }, [slug, activeFilter]);
 
   const handleVote = async (postId: string, intent: 1 | -1) => {
-    // 1. Find the post to check its current state
-    const post = posts.find(p => p.id === postId);
-    if (!post) return;
-
-    // Default to 0 if undefined
-    const currentVote = post.user_vote || 0; 
-    let newScore = post.score;
-    let newVote = currentVote;
-
-    // 2. Calculate the Logic (Mirroring Backend)
-    if (intent === 1) {
-       // User clicked UP
-       if (currentVote === 1) {
-          // Already UP? Remove it (Toggle off)
-          newVote = 0;
-          newScore -= 1;
-       } else if (currentVote === -1) {
-          // Was DOWN? Switch to UP (+2 swing)
-          newVote = 1;
-          newScore += 2;
-       } else {
-          // Was Neutral? Vote UP
-          newVote = 1;
-          newScore += 1;
-       }
-    } else {
-       // User clicked DOWN
-       if (currentVote === -1) {
-          // Already DOWN? Remove it (Toggle off)
-          newVote = 0;
-          newScore += 1;
-       } else if (currentVote === 1) {
-          // Was UP? Switch to DOWN (-2 swing)
-          newVote = -1;
-          newScore -= 2;
-       } else {
-          // Was Neutral? Vote DOWN
-          newVote = -1;
-          newScore -= 1;
-       }
-    }
-
-    // 3. Optimistic UI Update
     setPosts(currentPosts => 
-      currentPosts.map(p => 
-        p.id === postId ? { ...p, score: newScore, user_vote: newVote } : p
-      )
+      currentPosts.map(p => {
+        if (p.id !== postId) return p;
+        const currentVote = p.user_vote || 0;
+        let newScore = p.score;
+        let newVote = currentVote;
+
+        if (intent === 1) { 
+           if (currentVote === 1) { newVote = 0; newScore -= 1; }
+           else if (currentVote === -1) { newVote = 1; newScore += 2; }
+           else { newVote = 1; newScore += 1; }
+        } else { 
+           if (currentVote === -1) { newVote = 0; newScore += 1; }
+           else if (currentVote === 1) { newVote = -1; newScore -= 2; }
+           else { newVote = -1; newScore -= 1; }
+        }
+        return { ...p, score: newScore, user_vote: newVote };
+      })
     );
 
-    // 4. Call API
     try {
       await PostService.vote(postId, intent);
     } catch (error) {
-      console.error("Vote failed, reverting...");
-      // Ideally revert state here if API fails
-      setPosts(currentPosts => 
-        currentPosts.map(p => 
-          p.id === postId ? { ...p, score: post.score, user_vote: post.user_vote } : p
-        )
-      );
+      console.error("Vote failed");
     }
   };
 
-  // ... imports
-
   const handleCreatePost = async (data: any) => {
     try {
-      // 1. Send data to API to create the record
-      const apiResponse = await PostService.create(slug, data);
-      
-      // 2. MANUAL CONSTRUCTION (Crucial for UI Persistence)
-      // We do NOT re-fetch. We merge the API response (ID, Date) 
-      // with the FORM DATA (Title, Content) to guarantee it shows up.
-      const newPost: Post = {
-        id: apiResponse.id || `temp-${Date.now()}`,
-        title: data.title,         // <--- Forced from Form
-        content: data.content,     // <--- Forced from Form (Fixes missing description)
-        post_type: data.post_type, // <--- Forced from Form
-        author: user?.username || "Me",
-        score: 0,
-        user_vote: 0,
-        created_at: new Date().toISOString(),
-        community: slug
-      };
-
-      // 3. Prepend to the list
-      setPosts([newPost, ...posts]); 
-      
-      // 4. Close Modal
+      await PostService.create(slug, data);
+      const freshPosts = await PostService.getByCommunity(slug, activeFilter || undefined);
+      setPosts(freshPosts);
       setIsCreateModalOpen(false);
-      
     } catch (error) {
       console.error("Failed to create post", error);
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !community) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
@@ -149,24 +93,22 @@ export default function CommunityDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4">
-      {/* Community Header */}
       <div className="bg-white border border-slate-200 rounded-xl p-6 mb-8 shadow-sm">
         <div className="flex flex-col md:flex-row justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900 mb-2">{community.name}</h1>
             <p className="text-slate-600 max-w-2xl">{community.description}</p>
             <div className="flex items-center gap-4 mt-4 text-sm text-slate-500">
-              <div className="flex items-center">
+              <div className="flex items-center px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full border border-indigo-100 font-medium">
                 <Users className="h-4 w-4 mr-1.5" />
-                <span>Members</span>
+                {community.member_count || 1} Members
               </div>
-              <div>
+              <div className="flex items-center text-slate-400">
                 Created {new Date(community.created_at).toLocaleDateString()}
               </div>
             </div>
           </div>
           <div className="flex items-start">
-             {/* FIX: Corrected onClick handler */}
              <Button onClick={() => setIsCreateModalOpen(true)}>
                 <PenSquare className="h-4 w-4 mr-2" />
                 Create Post
@@ -175,27 +117,55 @@ export default function CommunityDetailPage() {
         </div>
       </div>
 
-      {/* Posts Feed */}
+      <div className="flex items-center gap-2 mb-6 border-b border-slate-200 pb-1">
+        <button
+          onClick={() => setActiveFilter(null)}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+            activeFilter === null ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <LayoutList className="h-4 w-4" /> All Posts
+        </button>
+        <button
+          onClick={() => setActiveFilter("proposal")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+            activeFilter === "proposal" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <FileText className="h-4 w-4" /> Proposals
+        </button>
+        <button
+          onClick={() => setActiveFilter("discussion")}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+            activeFilter === "discussion" ? "border-indigo-600 text-indigo-600" : "border-transparent text-slate-500 hover:text-slate-700"
+          )}
+        >
+          <MessageSquare className="h-4 w-4" /> Discussions
+        </button>
+      </div>
+
       <div className="space-y-4">
-        <h2 className="text-lg font-bold text-slate-900 mb-4">Discussions & Proposals</h2>
-        
-        {posts.length > 0 ? (
-          // FIX: Added 'index' as a fallback to prevent "unique key" crashes
-          posts.map((post, index) => (
+        {isLoading ? (
+           <div className="text-center py-10 text-slate-500">Updating feed...</div>
+        ) : posts.length > 0 ? (
+          posts.map((post) => (
             <PostCard 
-              key={post.id || `post-${index}`} // <--- The Fix
+              key={post.id} 
               post={post} 
-              onVote={handleVote} 
+              onVote={handleVote}
+              communitySlug={slug} // <--- FIX IS HERE
             />
           ))
         ) : (
           <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-            <p className="text-slate-500">No posts yet. Be the first to share an idea!</p>
+            <p className="text-slate-500">No posts found in this category.</p>
           </div>
         )}
       </div>
 
-      {/* FIX: Added the Modal Component here so it actually renders */}
       <CreatePostModal 
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
