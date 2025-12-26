@@ -83,8 +83,8 @@ export default function CommunitiesPage() {
 
   // 4. Filter Logic
   const filteredCommunities = communities.filter(c => 
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    c.description.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.name || "").toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (c.description || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -149,7 +149,7 @@ export default function CommunitiesPage() {
         </div>
       )}
 
-      {/* Create Modal */}
+     {/* Create Modal */}
       <Modal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)}
@@ -159,6 +159,7 @@ export default function CommunitiesPage() {
           <Input 
             label="Community Name" 
             placeholder="e.g. Nairobi Health Tech" 
+            className="text-slate-900 placeholder:text-slate-400" // FIX: Darker text
             error={errors.name?.message}
             {...register("name")}
           />
@@ -168,6 +169,7 @@ export default function CommunitiesPage() {
             <textarea
               className={cn(
                 "flex min-h-[100px] w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-600 disabled:cursor-not-allowed disabled:opacity-50",
+                "text-slate-900 placeholder:text-slate-400", // FIX: Darker text
                 errors.description && "border-red-500 focus-visible:ring-red-500"
               )}
               placeholder="What is this community about? e.g. solving traffic congestion..."

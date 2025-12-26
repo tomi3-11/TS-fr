@@ -58,7 +58,7 @@ export function PostCard({ post, onVote }: PostCardProps) {
         {/* Title & Body */}
         <h3 className="text-lg font-bold text-slate-900 mb-2 leading-tight">
           {post.title}
-        </div>
+        </h3>
         <div className="text-slate-600 text-sm line-clamp-3 mb-4">
           {post.content}
         </div>
