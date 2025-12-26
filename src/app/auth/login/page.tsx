@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AuthService } from "@/services/auth.service";
+import { useAuth } from "@/context/AuthContext";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -20,6 +21,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -30,13 +32,14 @@ export default function LoginPage() {
   async function onSubmit(data: LoginFormValues) {
     setIsLoading(true);
     setServerError(null);
+    
     try {
-      const response = await AuthService.login(data);
-      console.log("Login Success:", response);
-      // We will add Context saving in the next step
-      router.push("/"); 
+      await login(data); 
+      // NOTE: We don't need router.push here because the Context handles the redirect to /dashboard
+      
     } catch (error: any) {
-      const message = error.response?.data?.message || "Invalid email or password.";
+      // Basic error handling
+      const message = error.response?.data?.message || "Invalid credentials";
       setServerError(message);
     } finally {
       setIsLoading(false);
