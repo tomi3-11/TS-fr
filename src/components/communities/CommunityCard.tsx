@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Community } from "@/types/community";
 import { Button } from "@/components/ui/Button";
-import { Users, ArrowRight, Check, Plus, Terminal } from "lucide-react";
+import { Users, ArrowRight, Check, Plus } from "lucide-react"; // Import Users
 import { cn } from "@/lib/utils";
 
 interface CommunityCardProps {
@@ -13,21 +13,18 @@ interface CommunityCardProps {
 }
 
 export function CommunityCard({ community, onJoin, isJoining }: CommunityCardProps) {
-  const { name, description, slug, is_member } = community;
-  
-  // DEFENSIVE CODING: Check both possible keys for the count
-  // This fixes the "0 members" issue regardless of what the API calls it
-  const rawCount = (community as any).total_members ?? (community as any).member_count ?? 0;
+  // Destructure total_members correctly
+  const { name, description, slug, total_members, is_member } = community;
   
   const formattedCount = new Intl.NumberFormat('en-US', { 
     notation: "compact", 
     compactDisplay: "short" 
-  }).format(rawCount);
+  }).format(total_members || 0);
 
   const safeName = name || "Community";
   const safeDesc = description || "No description provided.";
 
-  // Dynamic Gradient based on name length
+  // Dynamic Gradients for the banner
   const gradients = [
     "bg-gradient-to-br from-violet-600 to-indigo-600",
     "bg-gradient-to-br from-emerald-600 to-teal-600",
@@ -45,7 +42,7 @@ export function CommunityCard({ community, onJoin, isJoining }: CommunityCardPro
          {/* Texture Overlay */}
          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 mix-blend-overlay"></div>
          
-         {/* Status Badge (Top Right) */}
+         {/* Status Badge */}
          <div className="absolute top-4 right-4">
              {is_member ? (
                 <span className="inline-flex items-center gap-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">
@@ -62,10 +59,11 @@ export function CommunityCard({ community, onJoin, isJoining }: CommunityCardPro
       {/* 2. Content Body */}
       <div className="px-6 flex-1 flex flex-col pt-0 relative">
           
-          {/* FLOATING ICON: Terminal (as requested) */}
+          {/* FLOATING ICON: Users (The universal sign for Community) */}
           <div className="absolute -top-10 left-6 h-20 w-20 bg-white rounded-2xl p-1.5 shadow-lg group-hover:scale-105 transition-transform duration-300">
               <div className="h-full w-full bg-slate-50 rounded-xl flex items-center justify-center border border-slate-100">
-                  <Terminal className="h-9 w-9 text-slate-700" strokeWidth={2} />
+                  {/* Using Users icon with a clean stroke */}
+                  <Users className="h-9 w-9 text-slate-700" strokeWidth={1.5} />
               </div>
           </div>
 
@@ -90,7 +88,7 @@ export function CommunityCard({ community, onJoin, isJoining }: CommunityCardPro
                 {formattedCount} Members
              </div>
 
-             {/* LOGIC: Is Member ? View : Join */}
+             {/* Logic: Is Member ? View : Join */}
              {is_member ? (
                 <Link href={`/dashboard/communities/${slug}`}>
                     <Button variant="ghost" size="sm" className="h-9 text-xs font-bold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50">
@@ -101,7 +99,7 @@ export function CommunityCard({ community, onJoin, isJoining }: CommunityCardPro
                 <Button 
                      size="sm" 
                      onClick={(e) => {
-                       e.stopPropagation(); // Prevent card click from firing if we just want to join
+                       e.stopPropagation();
                        onJoin(slug);
                      }}
                      isLoading={isJoining}
