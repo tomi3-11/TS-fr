@@ -1,17 +1,22 @@
 export interface Post {
-  id: string; // UUID
+  id: string;
   title: string;
-  content: string;
-  post_type: "proposal" | "discussion" | "announcement";
-  author: string; // username
-  community: string; // slug
-  score: number; // votes
+  content?: string; 
+  post_type: "proposal" | "discussion";
+  score: number;
+  author: string;
+  community: string; 
   created_at: string;
-  user_vote?: number; // 1 (up), -1 (down), 0 (none) - usually handled by separate state or joined data
+  user_vote?: number | null;
 }
 
 export interface CreatePostPayload {
   title: string;
   content: string;
   post_type: "proposal" | "discussion";
+}
+
+export interface CreatePostResponse {
+  message: string;
+  post_id: string;
 }
