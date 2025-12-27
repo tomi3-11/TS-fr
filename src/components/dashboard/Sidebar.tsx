@@ -3,7 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, User, LogOut, Zap } from "lucide-react";
+import { 
+  LayoutDashboard, 
+  Users, 
+  User, 
+  LogOut, 
+  Zap,
+  FolderKanban // <-- Recommended icon for Projects
+} from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export function Sidebar() {
@@ -13,6 +20,7 @@ export function Sidebar() {
   const links = [
     { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
     { name: "Communities", href: "/dashboard/communities", icon: Users },
+    { name: "Projects", href: "/dashboard/projects", icon: FolderKanban }, 
     { name: "Profile", href: "/dashboard/profile", icon: User },
   ];
 
@@ -35,7 +43,9 @@ export function Sidebar() {
         <nav className="space-y-1">
           {links.map((link) => {
             const Icon = link.icon;
-            const isActive = pathname === link.href;
+            // Check if active (handle sub-paths like /projects/create)
+            const isActive = pathname === link.href || (link.href !== "/dashboard" && pathname.startsWith(link.href));
+            
             return (
               <Link
                 key={link.href}
