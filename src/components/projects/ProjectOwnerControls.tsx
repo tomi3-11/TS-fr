@@ -12,8 +12,7 @@ import {
   Settings2, 
   Edit3, 
   Loader2,
-  ShieldAlert,
-  Code
+  ShieldAlert
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -26,7 +25,6 @@ export function ProjectOwnerControls({ project }: Props) {
   const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [showDebug, setShowDebug] = useState(false);
   
   // Prevent hydration mismatch
   const [mounted, setMounted] = useState(false);
@@ -34,33 +32,31 @@ export function ProjectOwnerControls({ project }: Props) {
 
   if (!mounted || !user) return null;
 
-  // --- 1. INTELLIGENT OWNERSHIP CHECK ---
+  // --- 1. OWNERSHIP & ACCESS LOGIC ---
   let isOwner = false;
-  let debugReason = "";
 
-  // Scenario A: Backend sent an Object (Ideal) -> Compare IDs
+  // Check ID Match (Object)
   if (typeof project.owner === 'object' && project.owner !== null && 'id' in project.owner) {
-      // Convert to string to ensure '1' matches 1
       isOwner = String(user.id) === String(project.owner.id);
-      debugReason = `ID Match: ${user.id} vs ${project.owner.id}`;
   } 
-  // Scenario B: Backend sent a String (Your Case) -> Compare Usernames
+  // Check Username Match (String)
   else if (typeof project.owner === 'string') {
-      // We check if the logged-in user's username matches the project owner string
       // @ts-ignore
       const currentUsername = user.username || user.email?.split('@')[0] || "";
       isOwner = currentUsername.toLowerCase() === project.owner.toLowerCase();
-      debugReason = `Username Match: "${currentUsername}" vs "${project.owner}"`;
   }
 
-  // --- 2. PRIVILEGE CHECK ---
+  // Check Privileges
   // @ts-ignore
   const userRole = user.role?.toUpperCase() || "USER";
   const isAdmin = ['ADMIN', 'MODERATOR', 'SUPERUSER'].includes(userRole);
 
   const canAccess = isOwner || isAdmin;
 
-  // --- 3. LIFECYCLE LOGIC ---
+  // IF NO ACCESS, RETURN NULL (Clean, no debug)
+  if (!canAccess) return null;
+
+  // --- 2. LIFECYCLE LOGIC ---
   let nextStage: ProjectStatus | null = null;
   let nextLabel = "";
   
@@ -70,7 +66,7 @@ export function ProjectOwnerControls({ project }: Props) {
     case 'ACTIVE': nextStage = 'COMPLETED'; nextLabel = 'Mark Completed'; break;
   }
 
-  // --- 4. HANDLERS ---
+  // --- 3. HANDLERS ---
   const handleTransition = async () => {
     if (!nextStage || !confirm(`Move project to ${nextStage}?`)) return;
     setIsProcessing(true);
@@ -94,46 +90,9 @@ export function ProjectOwnerControls({ project }: Props) {
     }
   };
 
-  // IF ACCESS DENIED: Show nothing (unless debug is forced)
-  if (!canAccess && !showDebug) {
-     // TEMPORARY: Rendering a small hidden trigger for debugging
-     return (
-        <div className="mb-8 opacity-50 hover:opacity-100 transition-opacity">
-            <button 
-                onClick={() => setShowDebug(true)} 
-                className="text-[10px] text-slate-300 hover:text-red-400 underline flex items-center gap-1"
-            >
-                <Code className="w-3 h-3" /> Controls Hidden (Click to Debug)
-            </button>
-        </div>
-     );
-  }
-
   return (
     <>
-        {/* DEBUG PANEL (Visible only if logic failed or toggled) */}
-        {showDebug && (
-            <div className="bg-slate-800 p-4 rounded-xl mb-4 text-xs font-mono text-cyan-400 border border-cyan-900 overflow-x-auto">
-                <div className="font-bold text-white mb-2">DEBUG MODE ACTIVATED</div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <div className="text-slate-500">Logged In User:</div>
-                        <pre>{JSON.stringify(user, null, 2)}</pre>
-                    </div>
-                    <div>
-                        <div className="text-slate-500">Project Owner Data:</div>
-                        <pre>{JSON.stringify(project.owner, null, 2)}</pre>
-                    </div>
-                </div>
-                {/* FIX: Replaced "->" with "&rarr;" to fix build error */}
-                <div className="mt-2 text-yellow-400 font-bold">
-                    Logic Result: {debugReason} &rarr; Access: {canAccess ? "GRANTED" : "DENIED"}
-                </div>
-                <button onClick={() => setShowDebug(false)} className="mt-2 text-red-400 underline">Close Debug</button>
-            </div>
-        )}
-
-        <div className="bg-slate-900 rounded-2xl p-6 text-white mb-8 border border-slate-800 shadow-xl relative overflow-hidden">
+        <div className="bg-slate-900 rounded-2xl p-6 text-white mb-8 border border-slate-800 shadow-xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-300">
             {/* Background Texture */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             
@@ -156,7 +115,7 @@ export function ProjectOwnerControls({ project }: Props) {
                         <Trash2 className="w-4 h-4 mr-2" /> Withdraw
                     </Button>
                     {nextStage && (
-                        <Button onClick={handleTransition} disabled={isProcessing} className="bg-emerald-600 hover:bg-emerald-500 text-white border-0">
+                        <Button onClick={handleTransition} disabled={isProcessing} className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg shadow-emerald-900/20">
                             {isProcessing ? <Loader2 className="animate-spin w-4 h-4" /> : <ArrowRightCircle className="w-4 h-4 mr-2" />}
                             {nextLabel}
                         </Button>
