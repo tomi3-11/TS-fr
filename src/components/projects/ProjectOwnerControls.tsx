@@ -12,7 +12,8 @@ import {
   Settings2, 
   Edit3, 
   Loader2,
-  ShieldAlert
+  ShieldAlert,
+  Code
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -22,143 +23,140 @@ interface Props {
 
 export function ProjectOwnerControls({ project }: Props) {
   const router = useRouter();
-  const { user } = useAuth(); // Assuming user object has { id, role }
+  const { user } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
+  const [showDebug, setShowDebug] = useState(false);
+  
   // Prevent hydration mismatch
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   if (!mounted || !user) return null;
 
-  // --- 1. ROBUST PERMISSION LOGIC ---
-  
-  // A. Safely extract Project Owner ID
-  const projectOwnerId = typeof project.owner === 'object' ? project.owner.id : -1;
+  // --- 1. INTELLIGENT OWNERSHIP CHECK ---
+  let isOwner = false;
+  let debugReason = "";
 
-  // B. Check Ownership (Convert both to String to prevent 1 !== "1" errors)
-  const isOwner = String(user.id) === String(projectOwnerId);
-
-  // C. Check Roles (Adjust 'role' property name to match your Auth User type)
-  // Assuming user.role is 'ADMIN', 'MODERATOR', or 'USER'
-  const hasPrivileges = 
-    // @ts-ignore - remove ignore if your User type has role defined
-    ['ADMIN', 'MODERATOR', 'SUPERUSER'].includes(user.role?.toUpperCase());
-
-  // D. Final Gate: If not owner AND not admin, hide everything.
-  if (!isOwner && !hasPrivileges) {
-      return null;
+  // Scenario A: Backend sent an Object (Ideal) -> Compare IDs
+  if (typeof project.owner === 'object' && project.owner !== null && 'id' in project.owner) {
+      // Convert to string to ensure '1' matches 1
+      isOwner = String(user.id) === String(project.owner.id);
+      debugReason = `ID Match: ${user.id} vs ${project.owner.id}`;
+  } 
+  // Scenario B: Backend sent a String (Your Case) -> Compare Usernames
+  else if (typeof project.owner === 'string') {
+      // We check if the logged-in user's username matches the project owner string
+      // @ts-ignore
+      const currentUsername = user.username || user.email?.split('@')[0] || "";
+      isOwner = currentUsername.toLowerCase() === project.owner.toLowerCase();
+      debugReason = `Username Match: "${currentUsername}" vs "${project.owner}"`;
   }
 
-  // --- 2. LIFECYCLE LOGIC ---
+  // --- 2. PRIVILEGE CHECK ---
+  // @ts-ignore
+  const userRole = user.role?.toUpperCase() || "USER";
+  const isAdmin = ['ADMIN', 'MODERATOR', 'SUPERUSER'].includes(userRole);
+
+  const canAccess = isOwner || isAdmin;
+
+  // --- 3. LIFECYCLE LOGIC ---
   let nextStage: ProjectStatus | null = null;
   let nextLabel = "";
   
   switch (project.status) {
-    case 'PROPOSED':
-      nextStage = 'APPROVED';
-      nextLabel = 'Approve Project';
-      break;
-    case 'APPROVED':
-      nextStage = 'ACTIVE';
-      nextLabel = 'Start Development';
-      break;
-    case 'ACTIVE':
-      nextStage = 'COMPLETED';
-      nextLabel = 'Mark Completed';
-      break;
+    case 'PROPOSED': nextStage = 'APPROVED'; nextLabel = 'Approve Project'; break;
+    case 'APPROVED': nextStage = 'ACTIVE'; nextLabel = 'Start Development'; break;
+    case 'ACTIVE': nextStage = 'COMPLETED'; nextLabel = 'Mark Completed'; break;
   }
 
-  // --- 3. HANDLERS ---
+  // --- 4. HANDLERS ---
   const handleTransition = async () => {
-    if (!nextStage) return;
-    if (!confirm(`Move project status to ${nextStage}?`)) return;
-
+    if (!nextStage || !confirm(`Move project to ${nextStage}?`)) return;
     setIsProcessing(true);
     try {
         await ProjectService.transition(project.id, nextStage);
         router.refresh(); 
     } catch (e) {
-        console.error("Transition failed", e);
         alert("Failed to update status.");
-    } finally {
-        setIsProcessing(false);
-    }
+    } finally { setIsProcessing(false); }
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure? This action cannot be undone.")) return;
-
+    if (!confirm("Delete this project permanently?")) return;
     setIsProcessing(true);
     try {
         await ProjectService.delete(project.id);
         router.push("/dashboard/projects");
     } catch (e) {
-        console.error("Delete failed", e);
         alert("Failed to delete project.");
         setIsProcessing(false);
     }
   };
 
+  // IF ACCESS DENIED: Show nothing (unless debug is forced)
+  if (!canAccess && !showDebug) {
+     // TEMPORARY: Rendering a small hidden trigger for debugging
+     return (
+        <div className="mb-8 opacity-50 hover:opacity-100 transition-opacity">
+            <button 
+                onClick={() => setShowDebug(true)} 
+                className="text-[10px] text-slate-300 hover:text-red-400 underline flex items-center gap-1"
+            >
+                <Code className="w-3 h-3" /> Controls Hidden (Click to Debug)
+            </button>
+        </div>
+     );
+  }
+
   return (
     <>
-        {/* DEBUGGING: Uncomment the line below if buttons are STILL hidden */}
-        {/* <div className="text-xs text-red-500 mb-2">Debug: UserID({user.id}) vs OwnerID({projectOwnerId})</div> */}
+        {/* DEBUG PANEL (Visible only if logic failed or toggled) */}
+        {showDebug && (
+            <div className="bg-slate-800 p-4 rounded-xl mb-4 text-xs font-mono text-cyan-400 border border-cyan-900 overflow-x-auto">
+                <div className="font-bold text-white mb-2">DEBUG MODE ACTIVATED</div>
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <div className="text-slate-500">Logged In User:</div>
+                        <pre>{JSON.stringify(user, null, 2)}</pre>
+                    </div>
+                    <div>
+                        <div className="text-slate-500">Project Owner Data:</div>
+                        <pre>{JSON.stringify(project.owner, null, 2)}</pre>
+                    </div>
+                </div>
+                {/* FIX: Replaced "->" with "&rarr;" to fix build error */}
+                <div className="mt-2 text-yellow-400 font-bold">
+                    Logic Result: {debugReason} &rarr; Access: {canAccess ? "GRANTED" : "DENIED"}
+                </div>
+                <button onClick={() => setShowDebug(false)} className="mt-2 text-red-400 underline">Close Debug</button>
+            </div>
+        )}
 
-        <div className="bg-slate-900 rounded-2xl p-6 text-white mb-8 border border-slate-800 shadow-xl relative overflow-hidden animate-in fade-in zoom-in-95 duration-300">
+        <div className="bg-slate-900 rounded-2xl p-6 text-white mb-8 border border-slate-800 shadow-xl relative overflow-hidden">
             {/* Background Texture */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-                
-                {/* Left: Info */}
                 <div>
                     <h3 className="font-bold text-lg flex items-center gap-2 text-white">
-                        {hasPrivileges && !isOwner ? (
-                             <ShieldAlert className="text-amber-400 w-5 h-5" />
-                        ) : (
-                             <Settings2 className="text-slate-400 w-5 h-5" />
-                        )}
-                        {hasPrivileges && !isOwner ? "Admin Override" : "Owner Controls"}
+                        {isAdmin && !isOwner ? <ShieldAlert className="text-amber-400 w-5 h-5" /> : <Settings2 className="text-slate-400 w-5 h-5" />}
+                        {isAdmin && !isOwner ? "Admin Mode" : "Owner Controls"}
                     </h3>
                     <p className="text-slate-400 text-sm mt-1">
-                        {hasPrivileges && !isOwner 
-                            ? "You are viewing this as a moderator." 
-                            : "Manage your project lifecycle."}
+                         {isAdmin && !isOwner ? "Bypassing ownership check." : "Manage project lifecycle."}
                     </p>
                 </div>
 
-                {/* Right: Actions */}
                 <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-                    
-                    {/* EDIT */}
-                    <Button 
-                        onClick={() => setIsEditOpen(true)}
-                        disabled={isProcessing}
-                        className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700"
-                    >
+                    <Button onClick={() => setIsEditOpen(true)} disabled={isProcessing} className="bg-slate-800 hover:bg-slate-700 text-white border border-slate-700">
                         <Edit3 className="w-4 h-4 mr-2" /> Edit
                     </Button>
-
-                    {/* WITHDRAW */}
-                    <Button 
-                        onClick={handleDelete}
-                        disabled={isProcessing}
-                        className="bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50"
-                    >
+                    <Button onClick={handleDelete} disabled={isProcessing} className="bg-red-950/30 hover:bg-red-900/50 text-red-400 border border-red-900/50">
                         <Trash2 className="w-4 h-4 mr-2" /> Withdraw
                     </Button>
-
-                    {/* TRANSITION (Primary Action) */}
                     {nextStage && (
-                        <Button 
-                            onClick={handleTransition}
-                            disabled={isProcessing}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white border-0 shadow-lg shadow-emerald-900/20"
-                        >
+                        <Button onClick={handleTransition} disabled={isProcessing} className="bg-emerald-600 hover:bg-emerald-500 text-white border-0">
                             {isProcessing ? <Loader2 className="animate-spin w-4 h-4" /> : <ArrowRightCircle className="w-4 h-4 mr-2" />}
                             {nextLabel}
                         </Button>
@@ -167,12 +165,7 @@ export function ProjectOwnerControls({ project }: Props) {
             </div>
         </div>
 
-        {/* Modal */}
-        <EditProjectModal 
-            project={project} 
-            isOpen={isEditOpen} 
-            onClose={() => setIsEditOpen(false)} 
-        />
+        <EditProjectModal project={project} isOpen={isEditOpen} onClose={() => setIsEditOpen(false)} />
     </>
   );
 }
