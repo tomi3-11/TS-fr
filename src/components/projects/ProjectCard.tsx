@@ -10,7 +10,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   LayoutGrid,
-  User
+  User,
+  ArrowRight,
+  ExternalLink // Added icon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -28,7 +30,7 @@ export function ProjectCard({ project, onVote, isVoting = false }: ProjectCardPr
   const myVote = project.user_vote || 0; 
   const isProposed = project.status === "PROPOSED";
   
-  // 1. Safe Date Parsing
+  // Safe Date Parsing
   let deadlineDate = new Date();
   try {
       if (project.proposal_deadline) {
@@ -39,7 +41,7 @@ export function ProjectCard({ project, onVote, isVoting = false }: ProjectCardPr
   }
   const isExpired = new Date() > deadlineDate;
 
-  // 2. Safe Owner Handling
+  // Safe Owner Handling
   let ownerName = "Anonymous";
   if (project.owner) {
       if (typeof project.owner === 'string') {
@@ -49,7 +51,7 @@ export function ProjectCard({ project, onVote, isVoting = false }: ProjectCardPr
       }
   }
 
-  // 3. Progress Bar Calculation (Visualizing score out of a "Goal" of 20)
+  // Progress Bar Logic
   const score = project.vote_score || 0;
   const maxScore = 20; 
   const progressPercent = Math.min(Math.max((score / maxScore) * 100, 0), 100);
@@ -58,10 +60,9 @@ export function ProjectCard({ project, onVote, isVoting = false }: ProjectCardPr
   return (
     <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col h-full relative group">
       
-      {/* HEADER: Stable Layout */}
+      {/* HEADER */}
       <div className="p-4 border-b border-slate-50 flex items-start justify-between gap-4">
         <div className="flex flex-col gap-2">
-            {/* Badges Row */}
             <div className="flex flex-wrap items-center gap-2">
                 <span className={cn(
                     "flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border",
@@ -79,46 +80,46 @@ export function ProjectCard({ project, onVote, isVoting = false }: ProjectCardPr
                 </span>
             </div>
             
-            {/* Title */}
-            <h3 className="font-extrabold text-slate-900 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-2">
-                {project.title}
-            </h3>
+            {/* Title Link */}
+            <Link href={`/dashboard/projects/${project.id}`} className="group/link">
+                <h3 className="font-extrabold text-slate-900 leading-tight group-hover/link:text-indigo-600 transition-colors line-clamp-2 flex items-center gap-2">
+                    {project.title}
+                    <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover/link:opacity-100 group-hover/link:translate-x-0 transition-all text-indigo-400" />
+                </h3>
+            </Link>
         </div>
 
-        {/* Date */}
         <div className="shrink-0 text-[10px] font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">
             {isExpired ? "Closed" : format(deadlineDate, "MMM d")}
         </div>
       </div>
 
-      {/* BODY: Content */}
-      <div className="p-4 flex-1 space-y-4">
-        {/* Problem */}
+      {/* BODY */}
+      <Link href={`/dashboard/projects/${project.id}`} className="flex-1 p-4 space-y-4 hover:bg-slate-50/30 transition-colors group/body">
         <div>
             <h4 className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
                 <Target className="w-3 h-3" /> Problem
             </h4>
-            <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
+            <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed group-hover/body:text-slate-900 transition-colors">
                 {project.problem_statement}
             </p>
         </div>
 
-        {/* Solution */}
         <div>
             <h4 className="flex items-center gap-1.5 text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">
                 <Lightbulb className="w-3 h-3" /> Solution
             </h4>
-            <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed">
+            <p className="text-sm text-slate-600 line-clamp-3 leading-relaxed group-hover/body:text-slate-900 transition-colors">
                 {project.proposed_solution}
             </p>
         </div>
-      </div>
+      </Link>
 
-      {/* FOOTER: Voting System */}
+      {/* FOOTER: Voting & Actions */}
       <div className="p-4 bg-slate-50/80 border-t border-slate-100 mt-auto">
         
         {isProposed ? (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
                 {/* Visual Progress Bar */}
                 <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                     <div 
@@ -127,9 +128,8 @@ export function ProjectCard({ project, onVote, isVoting = false }: ProjectCardPr
                     />
                 </div>
 
-                {/* Controls */}
+                {/* Voting Controls */}
                 <div className="flex items-center justify-between">
-                    {/* Downvote */}
                     <button 
                         disabled={isVoting}
                         onClick={(e) => { e.preventDefault(); onVote(project.id, -1); }}
@@ -144,12 +144,10 @@ export function ProjectCard({ project, onVote, isVoting = false }: ProjectCardPr
                         <span className="hidden sm:inline">Down</span>
                     </button>
 
-                    {/* Score */}
                     <div className="font-black text-slate-700 text-lg tabular-nums">
                         {project.vote_score}
                     </div>
 
-                    {/* Upvote */}
                     <button 
                         disabled={isVoting}
                         onClick={(e) => { e.preventDefault(); onVote(project.id, 1); }}
@@ -164,10 +162,17 @@ export function ProjectCard({ project, onVote, isVoting = false }: ProjectCardPr
                         <ThumbsUp className={cn("w-4 h-4", myVote === 1 && "fill-current")} />
                     </button>
                 </div>
+
+                {/* ADDED: Explicit View Details Button below Voting */}
+                <Link href={`/dashboard/projects/${project.id}`} className="block w-full">
+                    <button className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors flex items-center justify-center gap-2">
+                        View Full Details <ExternalLink className="w-3 h-3" />
+                    </button>
+                </Link>
             </div>
         ) : (
             <Link href={`/dashboard/projects/${project.id}`} className="block">
-                <button className="w-full py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors">
+                <button className="w-full py-2 bg-slate-900 text-white text-xs font-bold rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200/50">
                     View Project Details
                 </button>
             </Link>
