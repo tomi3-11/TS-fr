@@ -1,13 +1,16 @@
 import { api } from "@/lib/api";
-import { Post, CreatePostPayload, CreatePostResponse } from "@/types/post";
+import { Post } from "@/types/post";
+
+// Define the new response shape based on your blueprint
+interface VoteResponse {
+  message: string;
+  new_score: number;
+  user_vote: number; // 1, -1, or 0
+}
 
 export const PostService = {
-  // GET /api/v1/posts/communities/:slug/posts/?type=...
-  async getByCommunity(slug: string, type?: "proposal" | "discussion") {
-    if (!slug) throw new Error("Community slug is missing"); // Safety check
-    
-    const query = type ? `?type=${type}` : "";
-    const { data } = await api.get<Post[]>(`/api/v1/posts/communities/${slug}/posts/${query}`);
+  async getAll() {
+    const { data } = await api.get<Post[]>("/api/v1/posts/");
     return data;
   },
 
@@ -16,13 +19,14 @@ export const PostService = {
     return data;
   },
 
-  async create(slug: string, payload: CreatePostPayload) {
-    const { data } = await api.post<CreatePostResponse>(`/api/v1/posts/communities/${slug}/posts/`, payload);
+  async create(payload: { title: string; content: string; community_id: number; post_type: string }) {
+    const { data } = await api.post<Post>("/api/v1/posts/", payload);
     return data;
   },
 
-  async vote(id: string, value: 1 | -1) {
-    const { data } = await api.post(`/api/v1/votes/posts/${id}/vote/`, { value });
+  // UPDATED: Now returns the exact server state
+  async vote(postId: string, value: 1 | -1) {
+    const { data } = await api.post<VoteResponse>(`/api/v1/votes/posts/${postId}/vote/`, { value });
     return data;
   }
 };

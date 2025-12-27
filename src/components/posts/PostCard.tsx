@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 interface PostCardProps {
   post: Post;
   onVote: (id: string, value: 1 | -1) => void;
-  communitySlug?: string; // <--- NEW PROP: The Safety Net
+  communitySlug?: string; 
 }
 
 export function PostCard({ post, onVote, communitySlug }: PostCardProps) {
@@ -21,9 +21,20 @@ export function PostCard({ post, onVote, communitySlug }: PostCardProps) {
   const safeTitle = post.title || "Untitled Post";
   const safeContent = post.content;
   
-  // FIX: Use the prop if the post object is missing the community
-  const targetSlug = post.community || communitySlug || "#";
+  const rawCommunity = post.community;
+  let resolvedSlug = communitySlug;
+
+  if (rawCommunity) {
+      if (typeof rawCommunity === 'object') {
+          resolvedSlug = (rawCommunity as any).slug;
+      } else {
+          resolvedSlug = rawCommunity;
+      }
+  }
+  const targetSlug = resolvedSlug || "general";
+  
   const postUrl = `/dashboard/communities/${targetSlug}/posts/${post.id}`;
+  const communityUrl = `/dashboard/communities/${targetSlug}`;
 
   const hasContent = safeContent && safeContent.length > 0;
   const MAX_LENGTH = 180;
@@ -31,29 +42,47 @@ export function PostCard({ post, onVote, communitySlug }: PostCardProps) {
     ? (isExpanded || safeContent.length <= MAX_LENGTH ? safeContent : `${safeContent.slice(0, MAX_LENGTH)}...`)
     : null;
 
-  const upCountDisplay = post.score > 0 ? post.score : ""; 
-  const downCountDisplay = post.score < 0 ? Math.abs(post.score) : "";
+  // Floor score at 0 for display
+  const effectiveScore = post.score < 0 ? 0 : post.score;
+  const scoreDisplay = new Intl.NumberFormat('en-US', { notation: "compact" }).format(effectiveScore);
+  
+  // FIX: Explicit Color Logic
+  const scoreColor = myVote === 1 ? "text-orange-600" 
+    : myVote === -1 ? "text-indigo-600" 
+    : "text-slate-700";
 
   return (
     <div className="group bg-white border border-slate-200 rounded-xl p-5 transition-all duration-200 shadow-sm hover:shadow-md hover:border-indigo-200 relative overflow-hidden">
       
       {/* Header */}
       <div className="flex items-center justify-between mb-3 relative z-10">
-        <div className="flex items-center gap-2 text-xs text-slate-500">
-           <div className="flex items-center gap-1.5 bg-slate-100 hover:bg-indigo-50 px-2 py-1 rounded-full transition-colors cursor-pointer group/author">
-               <div className="h-4 w-4 rounded-full bg-indigo-200 flex items-center justify-center text-[8px] font-bold text-indigo-700">
-                  {safeAuthor.slice(0, 1).toUpperCase()}
+        <div className="flex items-center gap-2 text-xs">
+           <Link 
+             href={communityUrl}
+             onClick={(e) => e.stopPropagation()}
+             className="flex items-center gap-1.5 font-bold text-slate-900 hover:text-indigo-600 transition-colors group/community"
+           >
+               <div className="h-5 w-5 rounded-md bg-slate-100 flex items-center justify-center text-[10px] group-hover/community:bg-indigo-100 group-hover/community:text-indigo-600 border border-slate-200">
+                  {targetSlug.slice(0,1).toUpperCase()}
                </div>
-               <span className="font-semibold text-slate-700 group-hover/author:text-indigo-600">
+               <span>t/{targetSlug}</span>
+           </Link>
+
+           <span className="text-slate-300">•</span>
+
+           <div className="flex items-center gap-1 text-slate-500">
+               <span>Posted by</span>
+               <span className="font-medium hover:text-slate-800 transition-colors cursor-pointer">
                   @{safeAuthor}
                </span>
            </div>
-           <span className="text-slate-300">•</span>
-           <span>{new Date(post.created_at).toLocaleDateString()}</span>
+
+           <span className="text-slate-300 hidden sm:inline">•</span>
+           <span className="text-slate-400 hidden sm:inline">{new Date(post.created_at).toLocaleDateString()}</span>
         </div>
 
         <span className={cn(
-            "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+            "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0",
             isProposal 
               ? "bg-indigo-50 text-indigo-700 border border-indigo-100"
               : "bg-emerald-50 text-emerald-700 border border-emerald-100"
@@ -62,7 +91,7 @@ export function PostCard({ post, onVote, communitySlug }: PostCardProps) {
         </span>
       </div>
 
-      {/* Main Body (Clickable) */}
+      {/* Main Body */}
       <div className="mb-4 pl-0 md:pl-2 relative z-10">
         <Link href={postUrl} className="block">
            <h3 className="text-lg font-bold text-slate-900 mb-1 leading-snug group-hover:text-indigo-600 transition-colors flex items-center gap-2">
@@ -90,22 +119,45 @@ export function PostCard({ post, onVote, communitySlug }: PostCardProps) {
       </div>
 
       {/* Action Footer */}
-      <div className="flex items-center gap-6 pt-2 relative z-10">
-        <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-4 pt-2 relative z-10">
+        
+        {/* FIX: Distinct Active States for the Container */}
+        <div 
+            className={cn(
+                "flex items-center rounded-full border overflow-hidden transition-all duration-200",
+                myVote === 0 ? "bg-slate-50 border-slate-200" : "",
+                myVote === 1 ? "bg-orange-50 border-orange-200" : "", // Distinct Orange Background
+                myVote === -1 ? "bg-indigo-50 border-indigo-200" : "" // Distinct Blue Background
+            )} 
+            onClick={(e) => e.stopPropagation()}
+        >
+            {/* Upvote Arrow */}
             <button 
               onClick={() => onVote(post.id, 1)}
-              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 border", myVote === 1 ? "bg-orange-50 border-orange-200 text-orange-600" : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100")}
+              className={cn(
+                  "p-1.5 px-3 hover:bg-slate-200/50 transition-colors active:scale-95",
+                  myVote === 1 ? "text-orange-600" : "text-slate-400 hover:text-orange-600"
+              )}
             >
-              <ArrowBigUp className={cn("h-5 w-5", myVote === 1 && "fill-orange-600")} />
-              {upCountDisplay && <span>{upCountDisplay}</span>}
+              {/* Fill the arrow if active */}
+              <ArrowBigUp className={cn("h-6 w-6", myVote === 1 && "fill-orange-600")} />
             </button>
 
+            {/* Score */}
+            <span className={cn("text-xs font-bold min-w-[1.5rem] text-center select-none", scoreColor)}>
+                {scoreDisplay}
+            </span>
+
+            {/* Downvote Arrow */}
             <button 
               onClick={() => onVote(post.id, -1)}
-              className={cn("flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all active:scale-95 border", myVote === -1 ? "bg-indigo-50 border-indigo-200 text-indigo-600" : "bg-transparent border-transparent text-slate-500 hover:bg-slate-100")}
+              className={cn(
+                  "p-1.5 px-3 hover:bg-slate-200/50 transition-colors active:scale-95",
+                  myVote === -1 ? "text-indigo-600" : "text-slate-400 hover:text-indigo-600"
+              )}
             >
-              <ArrowBigDown className={cn("h-5 w-5", myVote === -1 && "fill-indigo-600")} />
-              {downCountDisplay && <span>{downCountDisplay}</span>}
+              {/* Fill the arrow if active */}
+              <ArrowBigDown className={cn("h-6 w-6", myVote === -1 && "fill-indigo-600")} />
             </button>
         </div>
 
