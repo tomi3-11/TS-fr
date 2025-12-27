@@ -8,7 +8,7 @@ import { Post } from "@/types/post";
 import { Community } from "@/types/community";
 import { PostCard } from "@/components/posts/PostCard";
 import { PostService } from "@/services/post.service"; 
-import { Loader2, Flame, Clock, TrendingUp, ChevronRight, Zap } from "lucide-react";
+import { Flame, Clock, TrendingUp, ChevronRight, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function DashboardHome() {
@@ -19,33 +19,51 @@ export default function DashboardHome() {
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [isLoadingSidebar, setIsLoadingSidebar] = useState(true);
 
-  // 1. Fetch Feed Data
+  // 1. Fetch Feed Data (Optimized with Cleanup)
   useEffect(() => {
+    // Create an abort controller for this specific effect execution
+    const controller = new AbortController();
+    
     async function loadFeed() {
+      // UX Fix: Clear posts immediately to show skeletons. 
+      // This prevents the "stuck" feeling where old data persists while new data loads.
+      setPosts([]); 
       setIsLoadingFeed(true);
+      
       try {
         const data = activeTab === "latest" 
           ? await FeedService.getLatest() 
           : await FeedService.getTop("week");
         
-        // Defensive check: If data.items is undefined, fallback to []
-        setPosts(data?.items || []); 
+        // Only update state if the request wasn't cancelled
+        if (!controller.signal.aborted) {
+          setPosts(data?.items || []); 
+        }
       } catch (e) {
-        console.error("Feed error", e);
-        setPosts([]); 
+        if (!controller.signal.aborted) {
+          console.error("Feed error", e);
+          setPosts([]); 
+        }
       } finally {
-        setIsLoadingFeed(false);
+        if (!controller.signal.aborted) {
+          setIsLoadingFeed(false);
+        }
       }
     }
+
     loadFeed();
+
+    // Cleanup function: Cancels the API call if the user switches tabs quickly
+    return () => {
+      controller.abort();
+    };
   }, [activeTab]);
 
-  // 2. Fetch Sidebar Data
+  // 2. Fetch Sidebar Data (Runs once)
   useEffect(() => {
     async function loadTrending() {
       try {
         const data = await CommunityService.getAll();
-        // Sort by member count
         const sorted = data.sort((a, b) => (b.total_members || 0) - (a.total_members || 0)).slice(0, 5);
         setTrendingCommunities(sorted);
       } catch (e) { console.error(e); } finally { setIsLoadingSidebar(false); }
@@ -53,16 +71,12 @@ export default function DashboardHome() {
     loadTrending();
   }, []);
 
-  // 3. Robust Voting Logic (Optimistic + Server Correction)
+  // 3. Voting Logic
   const handleVote = async (id: string, val: 1 | -1) => {
-    // A. OPTIMISTIC UPDATE: Update UI instantly based on guess
     setPosts(prev => (prev || []).map(p => {
       if (p.id === id) {
         const current = p.user_vote || 0;
-        // Toggle logic: If clicking same vote, remove it (0). Else set to new val.
         const nextVote = current === val ? 0 : val;
-        
-        // Calculate temporary score diff for UI
         const guessDiff = nextVote - current; 
         
         return { 
@@ -75,27 +89,20 @@ export default function DashboardHome() {
     }));
 
     try {
-      // B. SERVER CALL: Send vote to API
-      // Assumes PostService.vote returns { new_score: number, user_vote: number }
       const response = await PostService.vote(id, val);
       
-      // C. SERVER SNAP: Update UI again with the REAL numbers from DB
-      // This fixes any synchronization errors if multiple users voted
       setPosts(prev => (prev || []).map(p => {
         if (p.id === id) {
           return { 
              ...p, 
-             // Use the EXACT numbers from the backend
              score: response.new_score, 
              user_vote: response.user_vote === 0 ? null : response.user_vote 
           };
         }
         return p;
       }));
-
     } catch (e) {
       console.error("Vote failed", e);
-      // Optional: You could revert the optimistic update here if needed
     }
   };
 
@@ -155,13 +162,12 @@ export default function DashboardHome() {
                     ))}
                  </div>
               ) : posts && posts.length > 0 ? (
-                 <div className="space-y-6">
+                 <div className="space-y-6 animate-in fade-in duration-500">
                     {posts.map(post => (
                        <PostCard 
                           key={post.id} 
                           post={post} 
-                          // FIX: Access slug safely (handled by service layer now)
-                          communitySlug={post.community.slug} 
+                          communitySlug={typeof post.community === 'object' ? (post.community as any).slug : undefined} 
                           onVote={handleVote} 
                        />
                     ))}
@@ -212,6 +218,16 @@ export default function DashboardHome() {
                     </Link>
                  ))}
               </div>
+           </div>
+
+           <div className="px-4">
+               <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs font-medium text-slate-400">
+                  <span className="hover:text-slate-600 cursor-pointer">About</span>
+                  <span className="hover:text-slate-600 cursor-pointer">Guidelines</span>
+                  <span className="hover:text-slate-600 cursor-pointer">Privacy</span>
+                  <span className="hover:text-slate-600 cursor-pointer">API Docs</span>
+                  <span>© 2025 TechSpace</span>
+               </div>
            </div>
         </div>
 
