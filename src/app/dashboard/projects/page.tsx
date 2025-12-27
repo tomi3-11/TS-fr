@@ -16,35 +16,33 @@ import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/utils";
 
-// --- 1. LOCAL STORAGE HELPERS (Persistence) ---
+// --- PERSISTENCE HELPERS ---
 const getLocalVotes = (): Record<number, number> => {
   if (typeof window === "undefined") return {};
   try {
     return JSON.parse(localStorage.getItem("project_votes") || "{}");
-  } catch {
-    return {};
-  }
+  } catch { return {}; }
 };
 
 const saveLocalVote = (projectId: number, vote: number) => {
   const votes = getLocalVotes();
-  if (vote === 0) {
-    delete votes[projectId]; // Remove if vote is toggled off
-  } else {
-    votes[projectId] = vote;
-  }
+  if (vote === 0) delete votes[projectId];
+  else votes[projectId] = vote;
   localStorage.setItem("project_votes", JSON.stringify(votes));
 };
 
-// --- 2. STATS COMPONENT ---
+// --- RESPONSIVE STATS COMPONENT ---
 function ProjectStats({ projects }: { projects: Project[] }) {
     const totalVotes = projects.reduce((acc, p) => acc + (p.vote_score || 0), 0);
-    const activeCount = projects.filter(p => p.status === 'ACTIVE').length;
+    
+    // FIX: "Building" now includes APPROVED and ACTIVE
+    const buildingCount = projects.filter(p => p.status === 'ACTIVE' || p.status === 'APPROVED').length;
     const proposedCount = projects.filter(p => p.status === 'PROPOSED').length;
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 text-white shadow-lg shadow-indigo-200">
+        <div className="flex overflow-x-auto pb-4 gap-4 snap-x sm:grid sm:grid-cols-3 sm:pb-0 sm:overflow-visible no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0 mb-6">
+            
+            <div className="min-w-[85%] sm:min-w-0 snap-center bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-4 text-white shadow-lg shadow-indigo-200/50">
                 <div className="flex items-center gap-3 opacity-80 mb-1">
                     <Zap className="w-4 h-4" />
                     <span className="text-xs font-bold uppercase tracking-wider">Engagement</span>
@@ -52,15 +50,18 @@ function ProjectStats({ projects }: { projects: Project[] }) {
                 <div className="text-2xl font-black">{totalVotes}</div>
                 <div className="text-xs text-indigo-100">Total votes cast</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+
+            <div className="min-w-[85%] sm:min-w-0 snap-center bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                  <div className="flex items-center gap-3 text-emerald-600 mb-1">
                     <Rocket className="w-4 h-4" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Building</span>
+                    {/* Updated Label */}
+                    <span className="text-xs font-bold uppercase tracking-wider">Pipeline</span>
                 </div>
-                <div className="text-2xl font-black text-slate-800">{activeCount}</div>
-                <div className="text-xs text-slate-500">Active projects</div>
+                <div className="text-2xl font-black text-slate-800">{buildingCount}</div>
+                <div className="text-xs text-slate-500">Approved & Active</div>
             </div>
-            <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+
+            <div className="min-w-[85%] sm:min-w-0 snap-center bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
                  <div className="flex items-center gap-3 text-blue-600 mb-1">
                     <Trophy className="w-4 h-4" />
                     <span className="text-xs font-bold uppercase tracking-wider">Proposals</span>
@@ -81,20 +82,16 @@ export default function ProjectsPage() {
   const [selectedSector, setSelectedSector] = useState<string | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState("");
 
-  // --- 3. LOAD DATA + SYNC LOCAL STORAGE ---
+  // Load Data
   useEffect(() => {
     async function loadProjects() {
       try {
         const data = await ProjectService.getAll(); 
-        
-        // Merge API data with LocalStorage memory
-        // This ensures red/green buttons stay active even if backend list doesn't return user_vote
         const localVotes = getLocalVotes();
         const mergedData = data.map(p => ({
             ...p,
             user_vote: p.user_vote || localVotes[p.id] || 0
         }));
-
         setProjects(mergedData);
       } catch (e) {
         console.error("Failed to load projects", e);
@@ -105,55 +102,35 @@ export default function ProjectsPage() {
     loadProjects();
   }, []);
 
-  // --- 4. HYBRID VOTING HANDLER ---
+  // Vote Handler
   const handleVote = async (id: number, val: 1 | -1) => {
-    // A. Optimistic Update (Instant Visual Feedback)
     setProjects(prev => prev.map(p => {
         if (p.id === id) {
             const currentVote = p.user_vote || 0;
-            const nextVote = currentVote === val ? 0 : val; // Toggle off if same vote
+            const nextVote = currentVote === val ? 0 : val;
             const scoreDiff = nextVote - currentVote; 
-            
-            // Save optimistic state to local storage
             saveLocalVote(id, nextVote);
-
-            return { 
-                ...p, 
-                vote_score: (p.vote_score || 0) + scoreDiff, 
-                user_vote: nextVote 
-            };
+            return { ...p, vote_score: (p.vote_score || 0) + scoreDiff, user_vote: nextVote };
         }
         return p;
     }));
 
     try {
-        // B. API Call
-        // @ts-ignore - Ignoring strict type check if service interface isn't fully updated yet
+        // @ts-ignore
         const response = await ProjectService.vote(id, val);
-
-        // C. Server Sync (Snap to Truth)
         if (response && typeof response.new_score === 'number') {
             setProjects(prev => prev.map(p => {
                 if (p.id === id) {
-                    // Update LocalStorage with confirmed server truth
                     saveLocalVote(id, response.user_vote);
-                    
-                    return { 
-                        ...p, 
-                        vote_score: response.new_score, // Use real server score
-                        user_vote: response.user_vote   // Use real server vote status
-                    };
+                    return { ...p, vote_score: response.new_score, user_vote: response.user_vote };
                 }
                 return p;
             }));
         }
-    } catch (e) {
-        console.error("Vote failed", e);
-        // Optional: Add toast notification here
-    }
+    } catch (e) { console.error("Vote failed", e); }
   };
 
-  // --- 5. FILTERING LOGIC ---
+  // Filter Logic
   const filteredProjects = projects.filter(project => {
       if (activeTab !== 'ALL' && project.status !== activeTab) return false;
       if (selectedSector !== 'ALL' && project.sector.toLowerCase() !== selectedSector.toLowerCase()) return false;
@@ -163,18 +140,29 @@ export default function ProjectsPage() {
 
   const sectors = Array.from(new Set(projects.map(p => p.sector))).filter(Boolean);
 
+  // Helper for Tab Labels
+  const getTabLabel = (tab: string) => {
+      switch(tab) {
+          case 'PROPOSED': return 'Voting';
+          case 'APPROVED': return 'Team Up';
+          case 'ACTIVE': return 'Building';
+          case 'COMPLETED': return 'Done';
+          case 'ALL': return 'View All';
+          default: return tab;
+      }
+  };
+
   return (
     <div className="w-full max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-4 space-y-8 pb-12">
       
-      {/* HEADER SECTION */}
+      {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-end gap-6">
         <div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
                 Innovation Hub
             </h1>
             <p className="text-slate-500 text-lg max-w-2xl">
-                Collaborate on open-source solutions for local challenges. 
-                Vote on proposals to decide what gets built next.
+                Collaborate on open-source solutions for local challenges.
             </p>
         </div>
         
@@ -188,28 +176,24 @@ export default function ProjectsPage() {
       {/* STATS */}
       {!isLoading && <ProjectStats projects={projects} />}
 
-      {/* CONTROL BAR (Responsive Fixed) */}
+      {/* CONTROL BAR */}
       <div className="bg-white p-2 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row gap-4 justify-between items-center sticky top-4 z-20 backdrop-blur-md bg-white/90">
-         
-         {/* Tabs */}
+         {/* FIX: ADDED 'APPROVED' TAB */}
          <div className="flex bg-slate-100/50 p-1 rounded-xl w-full lg:w-auto overflow-x-auto no-scrollbar">
-            {(['PROPOSED', 'ACTIVE', 'COMPLETED', 'ALL'] as const).map((tab) => (
+            {(['PROPOSED', 'APPROVED', 'ACTIVE', 'COMPLETED', 'ALL'] as const).map((tab) => (
                 <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
                     className={cn(
-                        "px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex-1 lg:flex-none text-center",
-                        activeTab === tab 
-                            ? "bg-white text-indigo-600 shadow-sm" 
-                            : "text-slate-500 hover:text-slate-700"
+                        "px-4 py-2 rounded-lg text-xs font-bold transition-all whitespace-nowrap flex-1 lg:flex-none text-center min-w-[80px]",
+                        activeTab === tab ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"
                     )}
                 >
-                    {tab === 'PROPOSED' ? 'Voting Phase' : tab === 'ALL' ? 'View All' : tab.charAt(0) + tab.slice(1).toLowerCase()}
+                    {getTabLabel(tab)}
                 </button>
             ))}
          </div>
 
-         {/* Search & Filter */}
          <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
             <div className="relative flex-1 lg:w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -221,16 +205,13 @@ export default function ProjectsPage() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
-            
             <select 
                 className="px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 outline-none focus:ring-2 focus:ring-indigo-100 cursor-pointer"
                 value={selectedSector}
                 onChange={(e) => setSelectedSector(e.target.value)}
             >
                 <option value="ALL">All Sectors</option>
-                {sectors.map(s => (
-                    <option key={s} value={s}>{s}</option>
-                ))}
+                {sectors.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
          </div>
       </div>
@@ -259,12 +240,9 @@ export default function ProjectsPage() {
             </div>
             <h3 className="text-slate-900 font-bold text-xl mb-2">No projects found</h3>
             <p className="text-slate-500 mb-8 max-w-sm mx-auto">
-                We couldn't find any projects matching your current filters. Try switching tabs or clearing your search.
+                No projects found in this category.
             </p>
-            <Button 
-                variant="outline" 
-                onClick={() => { setActiveTab('ALL'); setSelectedSector('ALL'); setSearchQuery(''); }}
-            >
+            <Button variant="outline" onClick={() => { setActiveTab('ALL'); setSelectedSector('ALL'); setSearchQuery(''); }}>
                 Clear Filters
             </Button>
         </div>

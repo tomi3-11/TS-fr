@@ -21,12 +21,9 @@ export default function DashboardHome() {
 
   // 1. Fetch Feed Data (Optimized with Cleanup)
   useEffect(() => {
-    // Create an abort controller for this specific effect execution
     const controller = new AbortController();
     
     async function loadFeed() {
-      // UX Fix: Clear posts immediately to show skeletons. 
-      // This prevents the "stuck" feeling where old data persists while new data loads.
       setPosts([]); 
       setIsLoadingFeed(true);
       
@@ -35,7 +32,6 @@ export default function DashboardHome() {
           ? await FeedService.getLatest() 
           : await FeedService.getTop("week");
         
-        // Only update state if the request wasn't cancelled
         if (!controller.signal.aborted) {
           setPosts(data?.items || []); 
         }
@@ -53,7 +49,6 @@ export default function DashboardHome() {
 
     loadFeed();
 
-    // Cleanup function: Cancels the API call if the user switches tabs quickly
     return () => {
       controller.abort();
     };
@@ -127,6 +122,40 @@ export default function DashboardHome() {
         {/* --- MAIN FEED --- */}
         <div className="lg:col-span-8 space-y-6">
            
+           {/* === MOBILE TRENDING CAROUSEL (Visible only on small screens) === */}
+           <div className="lg:hidden">
+              <div className="flex items-center justify-between mb-3 px-1">
+                 <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
+                    <TrendingUp className="w-4 h-4 text-emerald-500" /> Trending Hubs
+                 </h3>
+                 <Link href="/dashboard/communities" className="text-xs font-bold text-indigo-600 hover:text-indigo-700">View All</Link>
+              </div>
+
+              {/* Horizontal Scroll Container */}
+              <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 snap-x no-scrollbar">
+                 {isLoadingSidebar ? (
+                    // Skeleton Loading Cards
+                    [1,2,3].map(i => (
+                        <div key={i} className="min-w-[150px] h-[70px] bg-white border border-slate-100 rounded-xl animate-pulse flex-shrink-0" />
+                    ))
+                 ) : (
+                    trendingCommunities.map((community, i) => (
+                       <Link 
+                         key={community.id}
+                         href={`/dashboard/communities/${community.slug}`}
+                         className="min-w-[160px] snap-center bg-white p-3 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-center gap-1 active:scale-95 transition-transform flex-shrink-0"
+                       >
+                          <div className="flex items-center gap-2">
+                             <span className="text-xs font-black text-slate-300 bg-slate-50 px-1.5 rounded">#{i+1}</span>
+                             <h4 className="font-bold text-slate-900 text-sm truncate max-w-[100px]">{community.name}</h4>
+                          </div>
+                          <p className="text-[10px] text-slate-500 font-medium pl-1">{community.total_members} members</p>
+                       </Link>
+                    ))
+                 )}
+              </div>
+           </div>
+
            {/* Toggles */}
            <div className="flex items-center bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm w-fit">
               <button
@@ -188,7 +217,7 @@ export default function DashboardHome() {
            </div>
         </div>
 
-        {/* --- SIDEBAR --- */}
+        {/* --- DESKTOP SIDEBAR (Hidden on mobile via 'hidden lg:block') --- */}
         <div className="hidden lg:block lg:col-span-4 space-y-6 sticky top-8">
            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
