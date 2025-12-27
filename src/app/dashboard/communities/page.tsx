@@ -1,18 +1,17 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import { CommunityService } from "@/services/community.service";
 import { Community } from "@/types/community";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
-import { Loader2, Plus, Search, Globe, LayoutGrid } from "lucide-react";
+import { Loader2, Plus, Search, Globe, LayoutGrid, WifiOff } from "lucide-react"; // Added WifiOff
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { CommunityCard } from "@/components/communities/CommunityCard";
-import { useAuth } from "@/context/AuthContext"; // IMPORT THIS
+import { useAuth } from "@/context/AuthContext";
 
 const createSchema = z.object({
   name: z.string().min(3).max(50),
@@ -22,13 +21,12 @@ type CreateForm = z.infer<typeof createSchema>;
 
 export default function CommunitiesPage() {
   const [communities, setCommunities] = useState<Community[]>([]);
-  const [isDataLoading, setIsDataLoading] = useState(true); // Renamed to avoid conflict
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [serverError, setServerError] = useState<string | null>(null); // New Error State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [joiningSlug, setJoiningSlug] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  // 1. GET AUTH STATE
-  // We need to know if auth is still loading (checking cookies)
   const { isLoading: isAuthLoading } = useAuth();
 
   const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm<CreateForm>({
@@ -38,15 +36,19 @@ export default function CommunitiesPage() {
   const fetchCommunities = async () => {
     try {
       setIsDataLoading(true);
+      setServerError(null);
       const data = await CommunityService.getAll();
       setCommunities(data);
-    } catch (e) { console.error(e); } finally { setIsDataLoading(false); }
+    } catch (e: any) { 
+      console.error("Fetch error:", e); 
+      // Handle the 500 Error Gracefully
+      setServerError("We couldn't reach the community server. Please try again later.");
+    } finally { 
+      setIsDataLoading(false); 
+    }
   };
 
-  // 2. THE FIX: DEPEND ON AUTH LOADING
   useEffect(() => {
-    // Only fetch if Auth is done checking cookies.
-    // If we fetch while isAuthLoading is true, we send a request without a token.
     if (!isAuthLoading) {
         fetchCommunities();
     }
@@ -79,9 +81,24 @@ export default function CommunitiesPage() {
     c.description.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Show loading if EITHER Auth is loading OR Data is loading
   if (isAuthLoading || isDataLoading) {
      return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-indigo-600 h-8 w-8" /></div>;
+  }
+
+  // ERROR UI FOR 500 STATUS
+  if (serverError) {
+    return (
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
+            <div className="bg-red-50 p-6 rounded-full mb-6">
+                <WifiOff className="h-10 w-10 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">System Unavailable</h2>
+            <p className="text-slate-500 max-w-md mb-8">{serverError}</p>
+            <Button onClick={() => window.location.reload()} variant="outline" className="border-red-200 text-red-600 hover:bg-red-50">
+                Refresh Page
+            </Button>
+        </div>
+    );
   }
 
   return (
