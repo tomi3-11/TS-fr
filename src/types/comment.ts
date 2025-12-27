@@ -1,14 +1,14 @@
 export interface Comment {
-  id: string;
+  id: number;
   content: string;
-  author: string;
-  post_id: string;
-  parent_id?: string | null; 
+  author: string; // The username (e.g., "alice")
+  post_id: number;
+  parent_id: number | null;
   created_at: string;
-  replies?: Comment[]; 
+  updated_at?: string;
+  replies: Comment[]; // Recursive structure
 }
 
 export interface CreateCommentPayload {
   content: string;
-  parent_id?: string | null;
 }

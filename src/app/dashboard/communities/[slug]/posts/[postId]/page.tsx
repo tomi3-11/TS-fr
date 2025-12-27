@@ -7,8 +7,9 @@ import { CommunityService } from "@/services/community.service";
 import { Post } from "@/types/post";
 import { Community } from "@/types/community";
 import { Button } from "@/components/ui/Button";
-import { Loader2, ArrowLeft, Calendar, User, MessageSquare, Share2, Flag, ChevronDown, ChevronUp, Zap } from "lucide-react";
+import { Loader2, ArrowLeft, Calendar, Zap, ChevronDown, ChevronUp, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CommentSection } from "@/components/comments/CommentSection";
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -23,7 +24,7 @@ export default function PostDetailPage() {
   
   // Content Toggles
   const [isExpanded, setIsExpanded] = useState(false);
-  const CHAR_LIMIT = 600; // How many chars before we truncate
+  const CHAR_LIMIT = 600; 
 
   useEffect(() => {
     async function loadData() {
@@ -45,73 +46,66 @@ export default function PostDetailPage() {
     loadData();
   }, [postId, slug]);
 
-  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-indigo-600 h-8 w-8" /></div>;
+  if (isLoading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-900 h-8 w-8" /></div>;
   
   if (error || !post) return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-       <div className="bg-slate-100 p-4 rounded-full mb-4"><Flag className="h-8 w-8 text-slate-400" /></div>
+       <div className="bg-slate-100 p-4 rounded-full mb-4"><Zap className="h-8 w-8 text-slate-400" /></div>
        <h1 className="text-xl font-bold text-slate-900">Post Not Found</h1>
        <Button variant="outline" onClick={() => router.back()} className="mt-4">Go Back</Button>
     </div>
   );
 
-  // Logic for Show More/Less
   const isLongContent = post.content ? post.content.length > CHAR_LIMIT : false;
   const displayContent = isExpanded || !isLongContent 
     ? post.content 
     : post.content?.slice(0, CHAR_LIMIT);
 
   return (
-    // min-w-0 fixes the "Content goes outside" bug
     <div className="min-w-0 w-full animate-in fade-in slide-in-from-bottom-4 pb-20">
       
-      {/* Navigation Breadcrumb */}
+      {/* Breadcrumb */}
       <div className="mb-6">
         <button 
           onClick={() => router.back()} 
-          className="group flex items-center text-sm font-bold text-slate-500 hover:text-indigo-600 transition-colors"
+          className="group flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors"
         >
           <ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
           Back to {community?.name || "Community"}
         </button>
       </div>
 
-      {/* --- CREATIVE POST CARD --- */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 overflow-hidden relative">
+      {/* --- POST CARD --- */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative">
            
-           {/* 1. Header Section */}
+           {/* Header */}
            <div className="px-6 md:px-10 pt-10 pb-6 relative">
-               {/* Background decoration */}
-               <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-slate-50 to-indigo-50/50 rounded-bl-full -z-0 opacity-70"></div>
-
                <div className="relative z-10">
-                   {/* Meta Badges */}
+                   {/* Meta */}
                    <div className="flex flex-wrap items-center gap-3 mb-6">
                       <span className={cn(
                         "px-3 py-1 rounded-full text-[11px] font-extrabold uppercase tracking-widest border shadow-sm",
                         post.post_type === "proposal" 
-                          ? "bg-indigo-600 text-white border-indigo-600" 
-                          : "bg-emerald-500 text-white border-emerald-500"
+                          ? "bg-slate-900 text-white border-slate-900" 
+                          : "bg-emerald-600 text-white border-emerald-600"
                       )}>
                         {post.post_type}
                       </span>
                       
-                      {/* Total Score Display (No Voting) */}
-                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                      <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-50 text-slate-700 text-xs font-bold border border-slate-200">
                          <Zap className="w-3.5 h-3.5 fill-slate-400 text-slate-400" />
-                         {new Intl.NumberFormat('en-US', { notation: "compact" }).format(post.score)} Impact Score
+                         {new Intl.NumberFormat('en-US', { notation: "compact" }).format(post.score)} Impact
                       </span>
                    </div>
 
-                   {/* Title */}
                    <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 leading-tight mb-6 break-words tracking-tight">
                      {post.title}
                    </h1>
 
-                   {/* Author & Date Row */}
+                   {/* Author Row */}
                    <div className="flex items-center gap-4 text-sm border-t border-slate-100 pt-6">
                       <div className="flex items-center gap-3">
-                         <div className="h-10 w-10 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-bold shadow-sm">
+                         <div className="h-10 w-10 rounded-lg bg-slate-900 flex items-center justify-center text-white font-bold shadow-md">
                             {post.author.slice(0,1).toUpperCase()}
                          </div>
                          <div>
@@ -123,38 +117,28 @@ export default function PostDetailPage() {
                       <div className="flex flex-col">
                          <div className="flex items-center gap-1.5 font-bold text-slate-700">
                              <Calendar className="w-4 h-4 text-slate-400" />
-                             {new Date(post.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                             {new Date(post.created_at).toLocaleDateString()}
                          </div>
-                         <p className="text-slate-500 text-xs">Posted Date</p>
+                         <p className="text-slate-500 text-xs">Posted</p>
                       </div>
                    </div>
                </div>
            </div>
 
-           {/* 2. Content Body */}
+           {/* Content */}
            <div className="px-6 md:px-10 py-8 relative">
-              <div className={cn(
-                  // Styles for reading experience
-                  "prose prose-slate prose-lg max-w-none",
-                  "text-slate-800 leading-loose font-medium",
-                  "whitespace-pre-wrap break-words" // Prevents overflow
-              )}>
+              <div className="prose prose-slate prose-lg max-w-none text-slate-800 leading-loose font-medium whitespace-pre-wrap break-words">
                  {displayContent}
               </div>
 
-              {/* Show More / Less Controls */}
               {isLongContent && (
                   <div className={cn("relative mt-4", !isExpanded && "pt-12")}>
-                      {/* Fade Effect when collapsed */}
-                      {!isExpanded && (
-                          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent top-[-80px]"></div>
-                      )}
-                      
+                      {!isExpanded && <div className="absolute inset-0 bg-gradient-to-t from-white via-white/80 to-transparent top-[-80px]"></div>}
                       <div className="relative z-10 flex justify-center">
                           <Button 
                             variant="outline"
                             onClick={() => setIsExpanded(!isExpanded)}
-                            className="rounded-full px-6 border-slate-300 text-slate-600 hover:text-indigo-600 hover:border-indigo-300 bg-white shadow-sm"
+                            className="rounded-full px-6 border-slate-300 text-slate-600 hover:text-slate-900 hover:border-slate-400 bg-white shadow-sm"
                           >
                              {isExpanded ? (
                                 <span className="flex items-center gap-2">Show Less <ChevronUp className="w-4 h-4" /></span>
@@ -167,21 +151,18 @@ export default function PostDetailPage() {
               )}
            </div>
 
-           {/* 3. Footer / Actions */}
+           {/* Footer (Simplified) */}
            <div className="bg-slate-50 p-6 md:px-10 border-t border-slate-200 flex items-center justify-between">
-              <p className="text-sm font-bold text-slate-400">
-                 Read to the end? Join the discussion.
-              </p>
-
-              <div className="flex gap-3">
-                 {/* <Button variant="ghost" size="sm" className="font-bold text-slate-500 hover:text-indigo-600 hover:bg-white">
-                    <Share2 className="w-4 h-4 mr-2" /> Share
-                 </Button> */}
-                 <Button size="sm" className="font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-200">
-                    <MessageSquare className="w-4 h-4 mr-2" /> Comments
-                 </Button>
-              </div>
+              <p className="text-sm font-bold text-slate-400">Join the discussion below.</p>
+              <Button variant="ghost" size="sm" className="font-bold text-slate-500 hover:text-slate-900">
+                  <Share2 className="w-4 h-4 mr-2" /> Share
+              </Button>
            </div>
+      </div>
+      
+      {/* Comments Section */}
+      <div className="mt-8">
+         <CommentSection postId={postId} />
       </div>
     </div>
   );
