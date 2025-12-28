@@ -282,8 +282,8 @@ export default function LandingPage() {
                             <MessageSquare className="w-4 h-4" /> Share Feedback
                         </Link>
                     </li>
-                    <li><a href="#" className="hover:text-blue-400 transition-colors">Twitter / X</a></li>
-                    <li><a href="#" className="hover:text-blue-400 transition-colors">GitHub</a></li>
+                    {/* <li><a href="#" className="hover:text-blue-400 transition-colors">Twitter / X</a></li> */}
+                    <li><a href="https://github.com/Tech-MSpace" className="hover:text-blue-400 transition-colors">GitHub</a></li>
                 </ul>
             </div>
         </div>
