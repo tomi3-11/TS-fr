@@ -11,7 +11,7 @@ import { Community } from "@/types/community";
 import { CreateProjectPayload } from "@/types/project"; 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { ArrowLeft, AlertCircle, CalendarIcon, Sparkles, Building2 } from "lucide-react";
+import { ArrowLeft, AlertCircle, CalendarIcon, Sparkles, Building2, ChevronDown, LayoutGrid, Target, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // 1. Validation Schema
@@ -55,7 +55,7 @@ export default function CreateProjectPage() {
     loadCommunities();
   }, []);
 
-  // 3. Submit Handler (SMART ID FIX)
+  // 3. Submit Handler (SMART ID FIX PRESERVED)
   const onSubmit = async (data: FormData) => {
     setServerError(null);
 
@@ -80,8 +80,6 @@ export default function CreateProjectPage() {
         proposal_deadline: data.proposal_deadline 
       };
 
-      console.log("Submitting Project:", payload);
-
       await ProjectService.create(payload);
       
       router.push("/dashboard/projects");
@@ -94,100 +92,97 @@ export default function CreateProjectPage() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto animate-in fade-in slide-in-from-bottom-4 py-6 px-4 md:px-0">
+    <div className="max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 py-6 px-4 md:px-6 mb-20">
       
       {/* Back Button */}
       <Button 
         variant="ghost" 
         onClick={() => router.back()}
-        className="mb-4 pl-0 hover:bg-transparent hover:text-slate-900 text-slate-500 text-xs uppercase font-bold tracking-wide"
+        className="mb-6 pl-0 hover:bg-transparent hover:text-indigo-600 text-slate-500 text-xs uppercase font-bold tracking-wide transition-colors"
       >
         <ArrowLeft className="w-3 h-3 mr-2" /> Cancel & Back
       </Button>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative">
         
+        {/* Decorative Gradient Line */}
+        <div className="h-1.5 w-full bg-gradient-to-r from-slate-800 via-indigo-600 to-purple-600"></div>
+
         {/* Header */}
-        <div className="bg-slate-50/50 p-6 border-b border-slate-100 flex items-start gap-4">
-            <div className="bg-indigo-100 p-2.5 rounded-xl hidden sm:block">
-               <Sparkles className="w-5 h-5 text-indigo-600" />
+        <div className="p-6 md:p-8 border-b border-slate-100 flex flex-col sm:flex-row sm:items-start gap-5">
+            <div className="bg-indigo-50 p-3 rounded-2xl border border-indigo-100 shrink-0 self-start">
+               <Sparkles className="w-6 h-6 text-indigo-600" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">New Project Proposal</h1>
-              <p className="text-sm text-slate-500 mt-1">
-                  Outline a problem and your tech solution.
+              <h1 className="text-2xl font-black text-slate-900 tracking-tight leading-tight">New Project Proposal</h1>
+              <p className="text-slate-500 mt-2 text-sm leading-relaxed max-w-lg">
+                  Every great system starts with a proposal. Outline the challenge clearly and propose a tech-driven solution.
               </p>
             </div>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit(onSubmit)} className="p-6 md:p-8 space-y-8">
             
             {serverError && (
-                <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-lg text-sm flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" /> {serverError}
+                <div className="bg-red-50 border border-red-100 text-red-600 p-4 rounded-xl text-sm flex items-start gap-3 animate-in slide-in-from-top-2">
+                    <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                    <p className="font-medium">{serverError}</p>
                 </div>
             )}
 
-            {/* Title */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Project Title</label>
+            {/* 1. Project Title */}
+            <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">Project Title</label>
                 <Input 
                     {...register("title")} 
-                    placeholder="e.g., Smart Traffic System" 
+                    placeholder="e.g., Smart Traffic Management System" 
                     error={errors.title?.message}
-                    className="font-semibold text-slate-900 placeholder:text-slate-300"
+                    className="h-12 md:h-14 text-lg font-bold text-slate-900 placeholder:text-slate-300 border-slate-200 focus:border-indigo-500 transition-all"
                 />
             </div>
 
-            {/* AUTOMATIC ID SELECTION ROW */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Target Community</label>
-                    <div className="relative">
+            {/* 2. Metadata Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                
+                {/* Community Select */}
+                <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">
+                        <Building2 className="w-3.5 h-3.5" /> Target Community
+                    </label>
+                    <div className="relative group">
                         <select 
                             {...register("community_id")}
                             disabled={isLoadingCommunities}
                             className={cn(
-                              "w-full px-3 py-2 bg-white border rounded-lg appearance-none text-sm font-medium focus:ring-2 focus:ring-indigo-100 outline-none transition-all disabled:opacity-50",
-                              errors.community_id ? "border-red-300" : "border-slate-200",
+                              "w-full h-12 pl-4 pr-10 bg-white border rounded-xl appearance-none text-base md:text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer disabled:opacity-60",
+                              errors.community_id ? "border-red-300" : "border-slate-200 group-hover:border-slate-300",
                               "text-slate-900"
                             )}
                         >
                             <option value="" className="text-slate-400">Select Community...</option>
                             {communities.map(c => (
-                                <option key={c.id} value={c.id}>
-                                    {c.name}
-                                </option>
+                                <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </select>
-                        
-                        {/* Icon for UX */}
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                           {isLoadingCommunities ? (
-                               <div className="w-3 h-3 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                           ) : (
-                               <Building2 className="w-3.5 h-3.5" />
-                           )}
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-indigo-500 transition-colors">
+                           <ChevronDown className="w-4 h-4" />
                         </div>
                     </div>
-                    {errors.community_id && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.community_id.message}</p>}
-                    
-                    {!isLoadingCommunities && communities.length === 0 && (
-                        <p className="text-[10px] text-orange-500 mt-1">
-                            You haven't joined any communities yet.
-                        </p>
-                    )}
+                    {errors.community_id && <p className="text-red-500 text-[10px] font-bold ml-1">{errors.community_id.message}</p>}
                 </div>
 
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Sector</label>
-                    <div className="relative">
+                {/* Sector Select */}
+                <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">
+                        <LayoutGrid className="w-3.5 h-3.5" /> Sector
+                    </label>
+                    <div className="relative group">
                         <select 
                             {...register("sector")}
                             className={cn(
-                              "w-full px-3 py-2 bg-white border rounded-lg appearance-none text-sm font-medium focus:ring-2 focus:ring-indigo-100 outline-none transition-all",
-                              errors.sector ? "border-red-300" : "border-slate-200",
+                              "w-full h-12 pl-4 pr-10 bg-white border rounded-xl appearance-none text-base md:text-sm font-medium focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all cursor-pointer",
+                              errors.sector ? "border-red-300" : "border-slate-200 group-hover:border-slate-300",
                               "text-slate-900"
                             )}
                         >
@@ -196,63 +191,76 @@ export default function CreateProjectPage() {
                                 <option key={s} value={s.toLowerCase()}>{s}</option>
                             ))}
                         </select>
-                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                           <span className="text-[10px]">▼</span>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-hover:text-indigo-500 transition-colors">
+                           <ChevronDown className="w-4 h-4" />
                         </div>
                     </div>
-                    {errors.sector && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.sector.message}</p>}
+                    {errors.sector && <p className="text-red-500 text-[10px] font-bold ml-1">{errors.sector.message}</p>}
                 </div>
             </div>
 
-            {/* The Problem */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Problem Statement</label>
-                <textarea 
-                    {...register("problem_statement")}
-                    placeholder="Describe the specific challenge..."
-                    className={cn(
-                      "w-full h-24 p-3 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-100 outline-none text-sm resize-none text-slate-900 placeholder:text-slate-400",
-                      errors.problem_statement && "border-red-300 bg-red-50/10"
-                    )}
-                />
-                {errors.problem_statement && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.problem_statement.message}</p>}
-            </div>
-
-            {/* The Solution */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Proposed Solution</label>
-                <textarea 
-                    {...register("proposed_solution")}
-                    placeholder="How do you plan to solve it?"
-                    className={cn(
-                      "w-full h-24 p-3 bg-indigo-50/30 border border-indigo-100 rounded-lg focus:ring-2 focus:ring-indigo-100 outline-none text-sm resize-none text-slate-900 placeholder:text-slate-400",
-                      errors.proposed_solution && "border-red-300 bg-red-50/10"
-                    )}
-                />
-                {errors.proposed_solution && <p className="text-red-500 text-[10px] mt-1 font-medium">{errors.proposed_solution.message}</p>}
-            </div>
-
-            {/* Deadline */}
-            <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wide mb-1.5">Voting Deadline</label>
-                <div className="relative max-w-[200px]">
-                    <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input 
-                        type="date"
-                        {...register("proposal_deadline")}
-                        className="pl-9 text-slate-900" 
-                        error={errors.proposal_deadline?.message}
+            {/* 3. The Pitch (Problem & Solution) */}
+            <div className="grid grid-cols-1 gap-8">
+                
+                {/* The Problem */}
+                <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">
+                        <Target className="w-4 h-4 text-red-400" /> Problem Statement
+                    </label>
+                    <textarea 
+                        {...register("problem_statement")}
+                        placeholder="Describe the specific challenge clearly..."
+                        className={cn(
+                          "w-full min-h-[140px] p-4 bg-slate-50/50 border rounded-xl text-base md:text-sm resize-none focus:ring-4 focus:ring-slate-200 focus:border-slate-400 outline-none transition-all placeholder:text-slate-400 text-slate-800 leading-relaxed",
+                          errors.problem_statement ? "border-red-300 bg-red-50/10" : "border-slate-200"
+                        )}
                     />
+                    {errors.problem_statement ? (
+                        <p className="text-red-500 text-[10px] font-bold ml-1">{errors.problem_statement.message}</p>
+                    ) : (
+                        <p className="text-[10px] text-slate-400 text-right">Be specific. What is broken?</p>
+                    )}
                 </div>
+
+                {/* The Solution */}
+                <div className="space-y-2">
+                    <label className="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-wide ml-1">
+                        <Lightbulb className="w-4 h-4 text-indigo-500" /> Proposed Solution
+                    </label>
+                    <textarea 
+                        {...register("proposed_solution")}
+                        placeholder="How do you plan to solve it using technology?"
+                        className={cn(
+                          "w-full min-h-[140px] p-4 bg-indigo-50/30 border rounded-xl text-base md:text-sm resize-none focus:ring-4 focus:ring-indigo-100 focus:border-indigo-500 outline-none transition-all placeholder:text-indigo-300/70 text-slate-900 leading-relaxed",
+                          errors.proposed_solution ? "border-red-300 bg-red-50/10" : "border-indigo-100"
+                        )}
+                    />
+                    {errors.proposed_solution && <p className="text-red-500 text-[10px] font-bold ml-1">{errors.proposed_solution.message}</p>}
+                </div>
+            </div>
+
+            {/* 4. Deadline */}
+            <div className="space-y-2 max-w-[240px]">
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wide ml-1">
+                    <CalendarIcon className="w-3.5 h-3.5" /> Voting Deadline
+                </label>
+                <Input 
+                    type="date"
+                    {...register("proposal_deadline")}
+                    className="h-12 bg-white text-slate-900 border-slate-200 focus:border-indigo-500 w-full" 
+                    error={errors.proposal_deadline?.message}
+                />
             </div>
 
             {/* Footer Action */}
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                <span className="text-xs text-slate-400 hidden sm:block">All fields are required</span>
+            <div className="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-4">
+                <span className="text-xs text-slate-400 font-medium">
+                    * All fields are required for submission
+                </span>
                 <Button 
                     type="submit" 
                     isLoading={isSubmitting}
-                    className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-6 h-10 rounded-lg text-sm w-full sm:w-auto"
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold h-12 px-8 rounded-xl w-full sm:w-auto shadow-lg shadow-slate-200 hover:shadow-slate-300 transition-all"
                 >
                     Submit Proposal
                 </Button>

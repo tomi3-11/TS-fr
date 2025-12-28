@@ -111,9 +111,9 @@ export default function ProjectDetailsPage() {
             </div>
             Back to Projects
         </button>
-        <Button variant="ghost" className="text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 text-xs">
+        {/* <Button variant="ghost" className="text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 h-8 text-xs">
             <Share2 className="w-3.5 h-3.5 mr-2" /> Share
-        </Button>
+        </Button> */}
       </nav>
 
       {/* 2. HEADER */}
@@ -122,8 +122,8 @@ export default function ProjectDetailsPage() {
 
          <div className="relative z-10 flex flex-col md:flex-row items-start justify-between gap-8">
             {/* Left: Info */}
-            <div className="flex-1 space-y-4 max-w-3xl min-w-0">
-                <div className="flex items-center gap-3">
+            <div className="flex-1 space-y-4 max-w-3xl min-w-0 w-full">
+                <div className="flex flex-wrap items-center gap-3">
                     <span className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border",
                         project.status === 'PROPOSED' ? "bg-amber-50 text-amber-700 border-amber-200/60" :
@@ -142,14 +142,14 @@ export default function ProjectDetailsPage() {
                     {project.title}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-6 text-sm text-slate-500 pt-1">
-                    <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-4 md:gap-6 text-sm text-slate-500 pt-1">
+                    <div className="flex items-center gap-2 max-w-full">
                         <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-[10px] shadow-sm shrink-0">
                             {ownerName.charAt(0).toUpperCase()}
                         </div>
-                        <span className="font-medium text-slate-700 truncate max-w-[150px]">@{ownerName}</span>
+                        <span className="font-medium text-slate-700 truncate max-w-[150px]">{ownerName}</span>
                     </div>
-                    <div className="w-1 h-1 bg-slate-300 rounded-full shrink-0" />
+                    <div className="hidden sm:block w-1 h-1 bg-slate-300 rounded-full shrink-0" />
                     <div className="flex items-center gap-1.5 whitespace-nowrap">
                         <CalendarDays className="w-4 h-4 text-slate-400" />
                         <span>Deadline: <span className={cn("font-medium", new Date() > new Date(project.proposal_deadline) ? "text-red-600" : "text-slate-700")}>
@@ -315,7 +315,7 @@ export default function ProjectDetailsPage() {
                     <div className="pt-4 border-t border-slate-100">
                         {project.status === 'PROPOSED' ? (
                             <Button 
-                                onClick={() => alert("Applications module coming soon!")}
+                                onClick={() => alert("Applications module coming soon!")} 
                                 className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold h-10 text-xs rounded-xl"
                             >
                                 Apply to Join Team

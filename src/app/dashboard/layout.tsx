@@ -1,48 +1,77 @@
 "use client";
 
-import { useState } from "react";
-// FIX: Sidebar is in 'components/dashboard', NOT 'components/layout' based on your tree
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar"; 
 import { MobileHeader } from "@/components/layout/MobileHeader"; 
 import { cn } from "@/lib/utils";
+import { X } from "lucide-react"; // Import X for explicit close button
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
+  // Hydration fix for ensuring consistent UI
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null; 
+  }
 
   return (
-    <div className="flex h-screen w-full bg-slate-50 overflow-hidden">
+    <div className="flex h-screen w-full bg-slate-50 overflow-hidden font-sans">
       
-      {/* Desktop Sidebar */}
-      <div className="hidden md:flex w-64 flex-col fixed inset-y-0 z-50">
+      {/* --- DESKTOP SIDEBAR (Fixed Left) --- */}
+      {/* Hidden on mobile, fixed width on desktop */}
+      <aside className="hidden md:flex w-64 flex-col fixed inset-y-0 z-40 border-r border-slate-200 bg-slate-900 shadow-xl">
         <Sidebar />
-      </div>
+      </aside>
 
-      {/* Main Content Wrapper */}
-      <div className="flex-1 flex flex-col md:pl-64 min-w-0 w-full transition-all duration-300 ease-in-out">
+      {/* --- MAIN CONTENT WRAPPER --- */}
+      {/* Padded left on desktop to account for sidebar */}
+      <div className="flex-1 flex flex-col md:pl-64 h-full w-full transition-all duration-300 ease-in-out">
         
-        {/* Mobile Header */}
-        <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
+        {/* Mobile Header (Sticky Top) */}
+        <div className="md:hidden sticky top-0 z-30 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-sm text-white">
+           <MobileHeader onMenuClick={() => setIsSidebarOpen(true)} />
+        </div>
 
         {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 w-full max-w-full">
-           {children}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8 w-full max-w-[100vw] scroll-smooth">
+           <div className="mx-auto max-w-7xl animate-in fade-in zoom-in-95 duration-500">
+              {children}
+           </div>
         </main>
       </div>
 
-      {/* Mobile Sidebar Overlay */}
+      {/* --- MOBILE SIDEBAR OVERLAY --- */}
       {isSidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
+        <div className="fixed inset-0 z-50 md:hidden flex">
+          
+          {/* Backdrop (Click to close) */}
           <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in" 
             onClick={() => setIsSidebarOpen(false)} 
           />
-          <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-xl animate-in slide-in-from-left duration-200">
-            {/* We pass onClose to Sidebar so links can close the menu */}
-            {/* TypeScript might complain if Sidebar doesn't accept props yet. See Step 3. */}
-            <Sidebar /> 
+          
+          {/* Sidebar Drawer */}
+          <div className="relative flex w-72 flex-col bg-slate-900 shadow-2xl animate-in slide-in-from-left duration-300 h-full border-r border-slate-800">
             
-            {/* Close button for accessibility usually goes inside Sidebar, 
-                but clicking outside works too via the overlay above. */}
+            {/* Close Button specific for mobile */}
+            <button 
+                onClick={() => setIsSidebarOpen(false)}
+                className="absolute top-4 right-4 p-2 bg-slate-800 text-slate-400 hover:text-white rounded-full z-50 transition-colors"
+            >
+                <X className="h-5 w-5" />
+            </button>
+
+            {/* Sidebar Content */}
+            {/* We assume Sidebar handles its own internal layout. 
+                If Sidebar has navigation links, clicking them typically won't close this overlay automatically 
+                unless Sidebar accepts an onClose prop. 
+                For now, we render it as is to preserve code behavior. */}
+            <Sidebar />
           </div>
         </div>
       )}
