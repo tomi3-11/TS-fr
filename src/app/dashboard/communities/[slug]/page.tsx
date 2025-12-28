@@ -71,7 +71,7 @@ export default function CommunityDetail() {
 
   const handleCreatePost = async (data: PostForm) => {
     try {
-      const res = await PostService.create(slug, data);
+      const res = await PostService.create(slug, data, { communityId: community?.id });
       try {
           const newPost = await PostService.getById(res.post_id);
           setPosts([newPost, ...posts]);

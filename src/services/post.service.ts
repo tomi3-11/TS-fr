@@ -26,26 +26,47 @@ function isLegacyCreatePostPayload(value: unknown): value is LegacyCreatePostPay
 
 function normalizeList(data: any): Post[] {
   if (Array.isArray(data)) return data as Post[];
-  const items = data?.results ?? data?.items ?? [];
+  const items = data?.results ?? data?.items ?? data?.posts ?? [];
   return Array.isArray(items) ? (items as Post[]) : [];
 }
 
-function createPost(communitySlug: string, payload: CreatePostPayload): Promise<CreatePostResponse>;
+type CreatePostOptions = { communityId?: string | number };
+
+function createPost(communitySlug: string, payload: CreatePostPayload, options?: CreatePostOptions): Promise<CreatePostResponse>;
 function createPost(payload: LegacyCreatePostPayload): Promise<Post>;
 async function createPost(
   communityOrPayload: string | LegacyCreatePostPayload,
-  maybePayload?: CreatePostPayload
+  maybePayload?: CreatePostPayload,
+  options?: CreatePostOptions
 ): Promise<CreatePostResponse | Post> {
   if (typeof communityOrPayload === "string") {
     const slug = communityOrPayload;
     if (!maybePayload) throw new Error("PostService.create(slug, payload) missing payload");
 
-    const { data } = await api.post<any>(`/api/v1/communities/${slug}/posts/`, maybePayload);
-    if (data && typeof data === "object") {
-      if (typeof data.post_id === "string") return data as CreatePostResponse;
-      if (typeof data.id === "string") return { message: data.message ?? "Post created", post_id: data.id };
+    try {
+      const { data } = await api.post<any>(`/api/v1/posts/communities/${slug}/posts/`, maybePayload);
+      if (data && typeof data === "object") {
+        if (typeof data.post_id === "string") return data as CreatePostResponse;
+        if (typeof data.id === "string") return { message: data.message ?? "Post created", post_id: data.id };
+      }
+      throw new Error("Unexpected create-post response from server");
+    } catch (err: any) {
+      const status = err?.response?.status;
+      const canFallback = options?.communityId !== undefined;
+      if (!canFallback || (status && status !== 400 && status !== 404)) {
+        throw err;
+      }
+
+      const { data } = await api.post<Post>("/api/v1/posts/", {
+        ...maybePayload,
+        community_id: options?.communityId,
+      });
+      if (data && typeof data === "object" && typeof (data as any).id === "string") {
+        const anyData = data as any;
+        return { message: typeof anyData.message === "string" ? anyData.message : "Post created", post_id: anyData.id };
+      }
+      return { message: "Post created", post_id: "" } as CreatePostResponse;
     }
-    throw new Error("Unexpected create-post response from server");
   }
 
   if (!isLegacyCreatePostPayload(communityOrPayload)) {
@@ -62,10 +83,29 @@ export const PostService = {
   },
 
   async getByCommunity(slug: string, postType?: "proposal" | "discussion") {
-    const { data } = await api.get<any>(`/api/v1/communities/${slug}/posts/`, {
-      params: postType ? { post_type: postType } : undefined,
-    });
-    return normalizeList(data);
+    try {
+      const { data } = await api.get<any>(`/api/v1/posts/communities/${slug}/posts/`, {
+        params: postType ? { type: postType } : undefined,
+      });
+      return normalizeList(data);
+    } catch (err: any) {
+      // Fallback 1: older community endpoint
+      try {
+        const { data } = await api.get<any>(`/api/v1/communities/${slug}/posts/`, {
+          params: postType ? { post_type: postType } : undefined,
+        });
+        return normalizeList(data);
+      } catch (err2: any) {
+        // Fallback 2: generic posts endpoint with community filter
+        const { data } = await api.get<any>(`/api/v1/posts/`, {
+          params: {
+            ...(postType ? { post_type: postType, type: postType } : {}),
+            community_slug: slug,
+          },
+        });
+        return normalizeList(data);
+      }
+    }
   },
 
   async getById(id: string) {

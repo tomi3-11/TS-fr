@@ -23,8 +23,11 @@ function normalizePost(post: any): Post {
   // Fix author object/string
   const authorName = typeof post.author === "object" ? post.author.username : post.author;
 
+  const score = typeof post.score === "number" ? post.score : (typeof post.vote_score === "number" ? post.vote_score : 0);
+
   return {
     ...post,
+    score,
     author: authorName,
     community: communityObj,
   };
