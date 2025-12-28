@@ -226,14 +226,14 @@ export default function DashboardHome() {
            </div>
 
            {/* Footer Mini Links */}
-           <div className="px-4">
+           {/* <div className="px-4">
                <div className="flex flex-wrap gap-x-4 gap-y-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                   <span className="hover:text-slate-600 cursor-pointer">About</span>
                   <span className="hover:text-slate-600 cursor-pointer">Privacy</span>
                   <span className="hover:text-slate-600 cursor-pointer">Guidelines</span>
                   <span>© 2025 Tech MSpace</span>
                </div>
-           </div>
+           </div> */}
         </aside>
 
       </div>

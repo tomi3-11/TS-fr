@@ -1,13 +1,30 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext"; // Import this
 
 const inter = Inter({ subsets: ["latin"] });
 
+// 1. BRANDING METADATA
 export const metadata: Metadata = {
-  title: "Tech MSpace | Build the Future",
-  description: "A community-driven platform for developers solving real-world problems.",
+  title: {
+    template: "%s | Tech MSpace",
+    default: "Tech MSpace - Developer Collaboration Platform",
+  },
+  description: "Join the ultimate community for developers. Collaborate on projects, propose solutions, and vote on the future of tech.",
+  keywords: ["Developers", "Collaboration", "Open Source", "Tech Community", "Coding"],
+  authors: [{ name: "Tech MSpace Team" }],
+  icons: {
+    icon: "/icon", // This will point to our dynamic icon.tsx
+    apple: "/apple-icon", // This points to apple-icon.tsx
+  },
+};
+
+// 2. THEME COLOR (Mobile Browser Bars)
+export const viewport: Viewport = {
+  themeColor: "#020617", // slate-950
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -18,9 +35,8 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        {/* Wrap children in AuthProvider */}
         <AuthProvider>
-          {children}
+           {children}
         </AuthProvider>
       </body>
     </html>
