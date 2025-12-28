@@ -81,11 +81,17 @@ export default function LandingPage() {
                         Start Building <ArrowRight className="w-5 h-5 ml-2" />
                     </Button>
                 </Link>
-                <Link href="#developers" className="w-full sm:w-auto">
+
+                <Link href="/about">                
+                    <Button variant="outline" className="w-full sm:w-auto h-14 px-8 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600 rounded-full font-bold">
+                        Learn More 
+                    </Button>
+                </Link>
+                {/* <Link href="#developers" className="w-full sm:w-auto">
                     <Button variant="outline" className="w-full sm:w-auto h-14 px-8 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800 hover:border-slate-600 rounded-full font-bold">
                         Meet the Team
                     </Button>
-                </Link>
+                </Link> */}
             </div>
 
             <div className="mt-20 pt-10 border-t border-slate-800/50 grid grid-cols-2 md:grid-cols-4 gap-8 opacity-80 animate-in fade-in duration-1000 delay-300">
@@ -177,10 +183,9 @@ export default function LandingPage() {
       </section>
 
       {/* 5. NEW: DEVELOPER & TEAM CTA (Terminal Style) */}
-      <section id="developers" className="py-24 bg-slate-950 border-t border-slate-900 relative overflow-hidden">
+      {/* <section id="developers" className="py-24 bg-slate-950 border-t border-slate-900 relative overflow-hidden">
          <div className="container mx-auto px-6 relative z-10">
             <div className="bg-slate-900/50 border border-slate-800 rounded-3xl p-8 md:p-12 overflow-hidden relative group">
-                {/* Glow */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] group-hover:bg-emerald-500/20 transition-all duration-700" />
                 
                 <div className="flex flex-col md:flex-row items-center justify-between gap-12">
@@ -210,7 +215,6 @@ export default function LandingPage() {
                         </div>
                     </div>
 
-                    {/* Code Snippet Visual */}
                     <div className="w-full md:w-auto min-w-[300px] bg-black/50 rounded-xl border border-slate-800 p-6 font-mono text-xs md:text-sm text-slate-300 shadow-2xl">
                         <div className="flex gap-1.5 mb-4 opacity-50">
                             <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
@@ -242,7 +246,7 @@ export default function LandingPage() {
                 </div>
             </div>
          </div>
-      </section>
+      </section> */}
 
       {/* 6. FOOTER */}
       <footer className="py-16 bg-slate-950 border-t border-slate-900 text-slate-400">
@@ -288,10 +292,10 @@ export default function LandingPage() {
             <div>
                 © {currentYear} Tech MSpace. Built with <Heart className="w-3 h-3 inline text-red-500 mx-1" /> by the community.
             </div>
-            <div className="flex gap-6 mt-4 md:mt-0">
+            {/* <div className="flex gap-6 mt-4 md:mt-0">
                 <a href="#" className="hover:text-slate-400">Privacy</a>
                 <a href="#" className="hover:text-slate-400">Terms</a>
-            </div>
+            </div> */}
         </div>
       </footer>
     </div>
