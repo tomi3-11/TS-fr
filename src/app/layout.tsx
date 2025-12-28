@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -27,6 +28,8 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+const googleAnalyticsID = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -38,6 +41,8 @@ export default function RootLayout({
         <AuthProvider>
            {children}
         </AuthProvider>
+
+        { googleAnalyticsID && <GoogleAnalytics gaId={googleAnalyticsID} />}
       </body>
     </html>
   );
