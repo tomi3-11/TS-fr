@@ -108,9 +108,15 @@ export const PostService = {
     }
   },
 
-  async getById(id: string) {
-    const { data } = await api.get<Post>(`/api/v1/posts/${id}/`);
-    return data;
+  async getById(id: string, communitySlug?: string) {
+    try {
+      const { data } = await api.get<Post>(`/api/v1/posts/${id}/`);
+      return data;
+    } catch (err) {
+      if (!communitySlug) throw err;
+      const { data } = await api.get<Post>(`/api/v1/posts/communities/${communitySlug}/posts/${id}/`);
+      return data;
+    }
   },
 
   create: createPost,

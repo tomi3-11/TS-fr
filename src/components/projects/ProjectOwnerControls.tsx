@@ -101,8 +101,9 @@ export function ProjectOwnerControls({ project }: Props) {
     try {
         await ProjectService.delete(project.id);
         router.push("/dashboard/projects");
-    } catch (e) {
-        alert("Failed to delete project.");
+    } catch (e: any) {
+        const backendMessage = e?.response?.data?.message;
+        alert(backendMessage || "Failed to delete project. Please confirm you are the owner or try again.");
         setIsProcessing(false);
     }
   };
