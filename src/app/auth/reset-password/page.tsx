@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { KeyRound, ArrowRight, AlertCircle } from "lucide-react";
+import { KeyRound, ArrowRight, AlertCircle, CheckCircle2, Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -49,7 +49,7 @@ function ResetPasswordForm() {
     try {
       await AuthService.confirmPasswordReset(token, data.password);
       setIsComplete(true);
-      // Optional: Auto redirect after 3 seconds, or let user click
+      // Optional: Auto redirect after 3 seconds
       setTimeout(() => router.push("/auth/login"), 3000);
     } catch (error: any) {
       const message = error.response?.data?.message || "Failed to reset password. The link may have expired.";
@@ -59,87 +59,112 @@ function ResetPasswordForm() {
     }
   }
 
-  // State 0: Missing Token
+  // --- State 0: Missing Token (Error View) ---
   if (!token) {
     return (
-      <div className="flex flex-col items-center text-center p-6 bg-red-50 rounded-xl border border-red-100">
-        <AlertCircle className="h-10 w-10 text-red-500 mb-4" />
-        <h2 className="text-lg font-bold text-red-900">Invalid Link</h2>
-        <p className="text-sm text-red-700 mb-6">
-          This password reset link is invalid or has expired. Please request a new one.
-        </p>
-        <Link href="/auth/forgot-password">
-           <Button variant="outline" className="bg-white">Request New Link</Button>
-        </Link>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8 font-sans">
+        <div className="w-full max-w-md bg-white p-8 shadow-xl shadow-slate-200/50 rounded-3xl border border-slate-100 text-center">
+            <div className="mx-auto h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                <AlertCircle className="h-8 w-8 text-red-600" />
+            </div>
+            <h2 className="text-xl font-black text-slate-900 mb-2">Invalid or Expired Link</h2>
+            <p className="text-sm text-slate-500 mb-8 leading-relaxed">
+                This password reset link is invalid or has expired. For security reasons, reset links are one-time use only.
+            </p>
+            <Link href="/auth/forgot-password" className="block w-full">
+                <Button variant="outline" className="w-full h-11 border-slate-300 text-slate-700 font-bold hover:bg-slate-50 rounded-xl">
+                    Request New Link
+                </Button>
+            </Link>
+        </div>
       </div>
     );
   }
 
-  // State 2: Success
+  // --- State 2: Success View ---
   if (isComplete) {
      return (
-      <div className="flex flex-col items-center text-center animate-in fade-in zoom-in-95">
-        <div className="h-16 w-16 bg-indigo-100 rounded-full flex items-center justify-center mb-6">
-          <KeyRound className="h-8 w-8 text-indigo-600" />
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8 font-sans">
+        <div className="w-full max-w-md bg-white p-8 shadow-xl shadow-slate-200/50 rounded-3xl border border-slate-100 text-center animate-in fade-in zoom-in-95 duration-500">
+            <div className="mx-auto h-20 w-20 bg-emerald-100 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+            </div>
+            <h1 className="text-2xl font-black text-slate-900 mb-2">Password Updated!</h1>
+            <p className="text-slate-500 mb-8 text-sm">
+                Your password has been changed successfully. You will be redirected to the login page shortly.
+            </p>
+            <Link href="/auth/login" className="block w-full">
+                <Button className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg">
+                    Log in Now <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </Link>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Password Updated!</h1>
-        <p className="text-sm text-slate-500 mb-8">
-          Your password has been changed successfully. Redirecting you to login...
-        </p>
-        <Link href="/auth/login" className="w-full">
-          <Button className="w-full">
-             Log in Now <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </Link>
       </div>
      );
   }
 
-  // State 1: Form
+  // --- State 1: Form View ---
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col space-y-2 text-center mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Set new password
-        </h1>
-        <p className="text-sm text-slate-500">
-          Please enter your new strong password below.
-        </p>
-      </div>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8 font-sans">
+      <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+        
+        {/* Header */}
+        <div className="text-center">
+            <div className="mx-auto h-12 w-12 bg-slate-100 rounded-xl flex items-center justify-center mb-6 transform rotate-6">
+                <Lock className="h-6 w-6 text-slate-600" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900">
+                Set new password
+            </h1>
+            <p className="mt-2 text-sm text-slate-600">
+                Please enter your new strong password below.
+            </p>
+        </div>
 
-      <div className="grid gap-6">
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className="grid gap-4">
+        {/* Main Card */}
+        <div className="bg-white py-8 px-6 shadow-xl shadow-slate-200/50 rounded-3xl border border-slate-100 sm:px-10">
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
             
-            <Input
-              id="password"
-              placeholder="••••••••"
-              type="password"
-              label="New Password"
-              error={errors.password?.message}
-              {...register("password")}
-            />
+                <div className="space-y-1">
+                    <Input
+                        id="password"
+                        placeholder="New password"
+                        type="password"
+                        label="New Password"
+                        error={errors.password?.message}
+                        {...register("password")}
+                        className="h-11 bg-white focus:bg-slate-50/50 transition-all border-slate-200"
+                    />
+                </div>
 
-            <Input
-              id="password_confirm"
-              placeholder="••••••••"
-              type="password"
-              label="Confirm New Password"
-              error={errors.password_confirm?.message}
-              {...register("password_confirm")}
-            />
+                <div className="space-y-1">
+                    <Input
+                        id="password_confirm"
+                        placeholder="Confirm new password"
+                        type="password"
+                        label="Confirm Password"
+                        error={errors.password_confirm?.message}
+                        {...register("password_confirm")}
+                        className="h-11 bg-white focus:bg-slate-50/50 transition-all border-slate-200"
+                    />
+                </div>
 
-            {serverError && (
-              <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-                {serverError}
-              </div>
-            )}
+                {serverError && (
+                    <div className="flex items-center gap-3 p-3 text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg animate-in fade-in zoom-in-95">
+                        <AlertCircle className="h-4 w-4 shrink-0" />
+                        <p className="font-medium">{serverError}</p>
+                    </div>
+                )}
 
-            <Button type="submit" isLoading={isLoading} className="w-full">
-              Reset Password
-            </Button>
-          </div>
-        </form>
+                <Button 
+                    type="submit" 
+                    isLoading={isLoading} 
+                    className="w-full h-11 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl shadow-lg shadow-slate-900/20 transition-all hover:scale-[1.02] active:scale-[0.98] mt-2"
+                >
+                    Reset Password
+                </Button>
+            </form>
+        </div>
       </div>
     </div>
   );
@@ -148,7 +173,14 @@ function ResetPasswordForm() {
 // Main Page Component (Must wrap in Suspense for useSearchParams)
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div className="text-center p-10">Loading...</div>}>
+    <Suspense fallback={
+        <div className="min-h-screen flex items-center justify-center bg-slate-50">
+            <div className="animate-pulse flex flex-col items-center">
+                <div className="h-12 w-12 bg-slate-200 rounded-full mb-4"></div>
+                <div className="h-4 w-32 bg-slate-200 rounded"></div>
+            </div>
+        </div>
+    }>
       <ResetPasswordForm />
     </Suspense>
   );
