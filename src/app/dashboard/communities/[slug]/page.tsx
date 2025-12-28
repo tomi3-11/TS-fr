@@ -9,7 +9,7 @@ import { Post } from "@/types/post";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
-import { Loader2, PenSquare, Users, MessageSquare, FileText, WifiOff, Search } from "lucide-react";
+import { Loader2, PenSquare, Users, MessageSquare, FileText, WifiOff } from "lucide-react";
 import { PostCard } from "@/components/posts/PostCard";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -99,7 +99,6 @@ export default function CommunityDetail() {
 
   return (
     // FIX 1: "min-w-0" prevents flex children from blowing out the width
-    // FIX 2: "w-full" ensures it takes available space, not screen space
     <div className="flex flex-col gap-6 md:gap-8 min-w-0 w-full animate-in fade-in slide-in-from-bottom-4 pb-20">
       
       {/* --- HERO DASHBOARD CARD --- */}
@@ -113,7 +112,7 @@ export default function CommunityDetail() {
                 {/* Identity Section */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="h-12 w-12 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-700 text-lg border border-slate-200">
+                        <div className="h-12 w-12 bg-slate-100 rounded-xl flex items-center justify-center font-black text-slate-700 text-lg border border-slate-200 shrink-0">
                             {community.name.slice(0, 2).toUpperCase()}
                         </div>
                         <span className={cn(
@@ -158,23 +157,23 @@ export default function CommunityDetail() {
       {/* --- ACTION BAR --- */}
       <div className="flex flex-col-reverse md:flex-row justify-between gap-4 px-4 md:px-0">
         
-        {/* Filters - "Pill" Style */}
+        {/* Filters - Scrollable on mobile */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 max-w-full">
           <button 
-             onClick={() => setFilter(undefined)}
-             className={cn("whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full border transition-all", !filter ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300")}
+              onClick={() => setFilter(undefined)}
+              className={cn("whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full border transition-all shrink-0", !filter ? "bg-slate-900 text-white border-slate-900" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300")}
           >
             All Posts
           </button>
           <button 
-             onClick={() => setFilter("proposal")}
-             className={cn("whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full border transition-all flex items-center gap-2", filter === "proposal" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300")}
+              onClick={() => setFilter("proposal")}
+              className={cn("whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full border transition-all flex items-center gap-2 shrink-0", filter === "proposal" ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300")}
           >
             Proposals
           </button>
           <button 
-             onClick={() => setFilter("discussion")}
-             className={cn("whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full border transition-all flex items-center gap-2", filter === "discussion" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300")}
+              onClick={() => setFilter("discussion")}
+              className={cn("whitespace-nowrap px-5 py-2.5 text-sm font-bold rounded-full border transition-all flex items-center gap-2 shrink-0", filter === "discussion" ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-slate-600 border-slate-200 hover:border-slate-300")}
           >
             Discussions
           </button>
@@ -183,7 +182,7 @@ export default function CommunityDetail() {
         {community.is_member && (
              <Button 
                 onClick={() => setIsModalOpen(true)} 
-                className="w-full md:w-auto h-11 shadow-lg shadow-indigo-100 font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 flex items-center justify-center gap-2"
+                className="w-full md:w-auto h-11 shadow-lg shadow-indigo-100 font-bold bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-6 flex items-center justify-center gap-2 shrink-0"
              >
                 <PenSquare className="w-4 h-4" /> New Post
              </Button>
@@ -191,7 +190,6 @@ export default function CommunityDetail() {
       </div>
 
       {/* --- FEED GRID --- */}
-      {/* FIX 3: Ensure feed doesn't overflow horizontally */}
       <div className="px-4 md:px-0 min-w-0 w-full">
         {isLoadingPosts ? (
             <div className="flex flex-col items-center justify-center py-20 text-slate-400">

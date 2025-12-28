@@ -6,7 +6,7 @@ import { Community } from "@/types/community";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
-import { Loader2, Plus, Search, Globe, LayoutGrid, WifiOff } from "lucide-react"; // Added WifiOff
+import { Loader2, Plus, Search, Globe, LayoutGrid, WifiOff } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -22,7 +22,7 @@ type CreateForm = z.infer<typeof createSchema>;
 export default function CommunitiesPage() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [isDataLoading, setIsDataLoading] = useState(true);
-  const [serverError, setServerError] = useState<string | null>(null); // New Error State
+  const [serverError, setServerError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [joiningSlug, setJoiningSlug] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -41,7 +41,6 @@ export default function CommunitiesPage() {
       setCommunities(data);
     } catch (e: any) { 
       console.error("Fetch error:", e); 
-      // Handle the 500 Error Gracefully
       setServerError("We couldn't reach the community server. Please try again later.");
     } finally { 
       setIsDataLoading(false); 
@@ -88,7 +87,7 @@ export default function CommunitiesPage() {
   // ERROR UI FOR 500 STATUS
   if (serverError) {
     return (
-        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in">
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in px-4">
             <div className="bg-red-50 p-6 rounded-full mb-6">
                 <WifiOff className="h-10 w-10 text-red-500" />
             </div>
@@ -102,7 +101,7 @@ export default function CommunitiesPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 pb-20 px-4 md:px-0">
       
       {/* Hero Section */}
       <div className="bg-slate-900 rounded-3xl p-6 md:p-10 text-white relative overflow-hidden shadow-2xl">
@@ -120,6 +119,7 @@ export default function CommunitiesPage() {
                </p>
             </div>
             
+            {/* Stat Block - Hidden on small mobile to save space */}
             <div className="hidden md:block bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 min-w-[140px] text-center">
                 <div className="text-3xl font-black">{communities.length}</div>
                 <div className="text-xs text-slate-300 font-bold uppercase tracking-wider">Active Hubs</div>
@@ -165,17 +165,17 @@ export default function CommunitiesPage() {
       {/* Modal */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Launch a Community">
         <form onSubmit={handleSubmit(handleCreate)} className="space-y-6">
-          <Input label="Community Name" {...register("name")} error={errors.name?.message} placeholder="e.g. AI Research Lab" className="font-bold text-slate-900" />
+          <Input label="Community Name" {...register("name")} error={errors.name?.message} placeholder="e.g. AI Research Lab" className="font-bold text-slate-900 h-12" />
           <div className="space-y-2">
             <label className="text-sm font-bold text-slate-800">Mission Statement</label>
             <textarea 
-              className="w-full border border-slate-300 rounded-xl p-3 text-slate-900 font-medium min-h-[120px] focus:ring-2 focus:ring-indigo-500" 
+              className="w-full border border-slate-300 rounded-xl p-3 text-slate-900 font-medium min-h-[120px] focus:ring-2 focus:ring-indigo-500 resize-none transition-all" 
               {...register("description")} 
               placeholder="What is this group about?"
             />
             {errors.description && <p className="text-red-600 text-xs font-bold">{errors.description.message}</p>}
           </div>
-          <Button type="submit" isLoading={isSubmitting} className="w-full h-12 font-bold bg-indigo-600 hover:bg-indigo-700">Launch Community</Button>
+          <Button type="submit" isLoading={isSubmitting} className="w-full h-12 font-bold bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md">Launch Community</Button>
         </form>
       </Modal>
     </div>
