@@ -73,7 +73,7 @@ export default function CommunityDetail() {
     try {
       const res = await PostService.create(slug, data, { communityId: community?.id });
       try {
-          const newPost = await PostService.getById(res.post_id);
+          const newPost = await PostService.getById(res.post_id, slug);
           setPosts([newPost, ...posts]);
       } catch (err) { console.warn("Refresh required"); }
       setIsModalOpen(false);

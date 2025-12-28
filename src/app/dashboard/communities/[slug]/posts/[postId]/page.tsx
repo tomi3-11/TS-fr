@@ -31,7 +31,7 @@ export default function PostDetailPage() {
       setIsLoading(true);
       try {
         const [postData, communityData] = await Promise.all([
-          PostService.getById(postId),
+          PostService.getById(postId, slug),
           CommunityService.getOne(slug)
         ]);
         setPost(postData);

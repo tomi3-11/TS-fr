@@ -29,7 +29,7 @@ export default function PostDetailPage() {
     async function loadData() {
       try {
         const [postData, commentsData] = await Promise.all([
-           PostService.getById(postId),
+           PostService.getById(postId, params.slug as string),
            CommentService.getByPost(postId)
         ]);
         setPost(postData);
