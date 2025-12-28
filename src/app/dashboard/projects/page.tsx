@@ -121,8 +121,8 @@ export default function ProjectsPage() {
         if (response && typeof response.new_score === 'number') {
             setProjects(prev => prev.map(p => {
                 if (p.id === id) {
-                    saveLocalVote(id, response.user_vote);
-                    return { ...p, vote_score: response.new_score, user_vote: response.user_vote };
+                    saveLocalVote(id, response.user_vote ?? 0);
+                    return { ...p, vote_score: response.new_score, user_vote: response.user_vote ?? undefined };
                 }
                 return p;
             }));

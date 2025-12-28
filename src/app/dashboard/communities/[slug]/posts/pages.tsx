@@ -67,15 +67,23 @@ export default function PostDetailPage() {
   };
 
   // Handle Nested Reply (Passed down to recursion)
-  const handleReply = async (content: string, parentId: string) => {
+  const handleReply = async (parentId: number, content: string) => {
     try {
-      await CommentService.create(postId, { content, parent_id: parentId });
-      // Refresh comments to show correct nesting structure from backend
-      // (Recursion is hard to optimistically update accurately without complex logic)
+      await CommentService.reply(parentId, { content });
       const freshComments = await CommentService.getByPost(postId);
       setComments(freshComments);
     } catch (e) {
       console.error("Reply failed");
+    }
+  };
+
+  const handleDelete = async (commentId: number) => {
+    try {
+      await CommentService.delete(commentId);
+      const freshComments = await CommentService.getByPost(postId);
+      setComments(freshComments);
+    } catch (e) {
+      console.error("Delete failed");
     }
   };
 
@@ -150,7 +158,9 @@ export default function PostDetailPage() {
               <CommentItem 
                 key={comment.id} 
                 comment={comment} 
+                currentUsername={user?.username}
                 onReply={handleReply} 
+                onDelete={handleDelete}
               />
             ))
           ) : (
