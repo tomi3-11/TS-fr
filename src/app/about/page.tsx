@@ -10,14 +10,47 @@ import {
   Heart, 
   GitCommit, 
   Share2,
-  Users
+  Users,
+  Github,
+  Linkedin,
+  Twitter
 } from "lucide-react";
+
+// --- 1. TEAM DATA ---
+const TEAM = [
+  {
+    name: "Thomas Jose",
+    role: "Lead Maintainer",
+    bio: "Full-stack architect. Obsessed with clean code and civic tech.",
+    socials: { 
+        github: "https://github.com/tomi3-11", 
+        linkedin: "https://www.linkedin.com/in/thomas-wotoro-a8504233a/",
+        twitter: "#" 
+    },
+    gradient: "from-blue-500 to-indigo-500"
+  },
+  // Uncomment to add more members
+  // {
+  //   name: "Bob K.",
+  //   role: "Product Design",
+  //   bio: "Turning complex systems into simple, human interfaces.",
+  //   socials: { github: "#", twitter: "#", linkedin: "#" },
+  //   gradient: "from-emerald-500 to-teal-500"
+  // },
+];
+
+// --- 2. CONTRIBUTORS DATA ---
+// Add GitHub usernames here to populate the grid
+const CONTRIBUTORS = [
+  "torvalds", "gaearon", "yyx990803", "sindresorhus", "tj", 
+  "shadcn", "leerob", "timneutkens"
+];
 
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 font-sans selection:bg-blue-500/30">
       
-      {/* 1. NAVBAR (Consistent with Landing) */}
+      {/* 1. NAVBAR */}
       <header className="fixed top-0 w-full z-50 border-b border-white/10 bg-slate-950/80 backdrop-blur-md">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 group cursor-pointer">
@@ -42,9 +75,8 @@ export default function AboutPage() {
         </div>
       </header>
 
-      {/* 2. HERO: THE VISION */}
+      {/* 2. HERO */}
       <section className="relative pt-32 pb-20 px-6 overflow-hidden">
-         {/* Background Elements */}
          <div className="absolute top-0 right-0 w-[800px] h-[600px] bg-indigo-600/10 rounded-full blur-[120px] -z-10 pointer-events-none" />
          
          <div className="container mx-auto max-w-4xl text-center">
@@ -66,11 +98,9 @@ export default function AboutPage() {
          </div>
       </section>
 
-      {/* 3. THE MANIFESTO (Code Block Visual) */}
+      {/* 3. MANIFESTO */}
       <section className="py-20 bg-slate-900/50 border-y border-slate-800">
         <div className="container mx-auto px-6 grid lg:grid-cols-2 gap-16 items-center">
-            
-            {/* Left: Text */}
             <div className="space-y-8">
                 <h2 className="text-3xl md:text-4xl font-black text-white">
                     The Operating System <br />
@@ -86,7 +116,6 @@ export default function AboutPage() {
                 </div>
             </div>
 
-            {/* Right: Code Editor Visual */}
             <div className="relative">
                 <div className="bg-slate-950 rounded-xl border border-slate-800 shadow-2xl overflow-hidden font-mono text-sm relative z-10">
                     <div className="bg-slate-900 border-b border-slate-800 p-3 flex gap-2">
@@ -110,13 +139,12 @@ export default function AboutPage() {
                         <div>{"}"}</div>
                     </div>
                 </div>
-                {/* Glow behind code */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-blue-500/10 blur-[60px] -z-10 rounded-full" />
             </div>
         </div>
       </section>
 
-      {/* 4. OUR PILLARS */}
+      {/* 4. PILLARS */}
       <section className="py-24 px-6">
         <div className="container mx-auto">
             <div className="text-center mb-16">
@@ -144,39 +172,105 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* 5. TEAM / CONTRIBUTORS */}
+      {/* 5. TEAM SECTION (UPDATED) */}
+      <section className="py-24 bg-slate-950 relative overflow-hidden">
+        <div className="container mx-auto px-6 relative z-10">
+            <div className="text-center mb-16">
+                <h2 className="text-3xl md:text-5xl font-black text-white mb-6">Core Maintainers</h2>
+                <p className="text-slate-500 text-lg max-w-2xl mx-auto">
+                    The humans behind the commits. We are a small, distributed team of builders passionate about open governance.
+                </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto justify-center">
+                {TEAM.map((member, idx) => {
+                    // Extract username from GitHub URL (e.g., "https://github.com/tomi3-11" -> "tomi3-11")
+                    const githubUsername = member.socials.github.split("/").pop();
+
+                    return (
+                        <div key={idx} className="group relative p-1 rounded-3xl bg-gradient-to-b from-slate-800 to-slate-900 hover:from-blue-500 hover:to-purple-600 transition-all duration-500">
+                            <div className="bg-slate-950 rounded-[22px] h-full p-8 flex flex-col items-center text-center relative z-10">
+                                
+                                {/* Dynamic Avatar */}
+                                <div className={`w-28 h-28 rounded-2xl bg-gradient-to-br ${member.gradient} p-1 mb-6 shadow-xl group-hover:scale-105 transition-transform duration-500`}>
+                                    <img 
+                                        src={`https://github.com/${githubUsername}.png`} 
+                                        alt={member.name}
+                                        className="w-full h-full rounded-xl object-cover bg-slate-900"
+                                    />
+                                </div>
+
+                                <h3 className="text-xl font-bold text-white mb-1">{member.name}</h3>
+                                <div className="text-xs font-bold text-blue-400 uppercase tracking-widest mb-4">{member.role}</div>
+                                
+                                <p className="text-slate-400 text-sm leading-relaxed mb-6">
+                                    "{member.bio}"
+                                </p>
+
+                                {/* Social Links */}
+                                <div className="mt-auto flex gap-4">
+                                    {member.socials.github && (
+                                        <SocialLink href={member.socials.github} icon={<Github className="w-4 h-4" />} />
+                                    )}
+                                    {member.socials.twitter && member.socials.twitter !== "#" && (
+                                        <SocialLink href={member.socials.twitter} icon={<Twitter className="w-4 h-4" />} />
+                                    )}
+                                    {member.socials.linkedin && member.socials.linkedin !== "#" && (
+                                        <SocialLink href={member.socials.linkedin} icon={<Linkedin className="w-4 h-4" />} />
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
+      </section>
+
+      {/* 6. CONTRIBUTORS SECTION (UPDATED) */}
       <section className="py-24 bg-slate-900/30 border-t border-slate-900">
          <div className="container mx-auto px-6 text-center">
              <div className="mb-12">
-                 <h2 className="text-3xl font-black text-white mb-4">Built by the Community</h2>
-                 <p className="text-slate-400 max-w-2xl mx-auto">
+                 <h2 className="text-2xl font-black text-slate-300 mb-4">Open Source Contributors</h2>
+                 <p className="text-slate-500 max-w-2xl mx-auto">
                      Tech MSpace isn't owned by a corporation. It's built by students, professionals, and hobbyists who want to see change.
                  </p>
              </div>
 
-             {/* Simulated Contributor Grid */}
-             {/* <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto opacity-70 hover:opacity-100 transition-opacity duration-500">
-                 {Array.from({ length: 18 }).map((_, i) => (
-                     <div key={i} className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 hover:bg-blue-600 hover:text-white hover:border-blue-500 hover:scale-110 transition-all cursor-pointer" title={`Contributor ${i+1}`}>
-                        {['JD', 'AK', 'MS', 'DL', 'TR'][i % 5]}
-                     </div>
+            {/* Map through the CONTRIBUTORS array */}
+             {/* <div className="flex flex-wrap justify-center gap-4 max-w-4xl mx-auto">
+                 {CONTRIBUTORS.map((username, i) => (
+                     <a 
+                        key={i} 
+                        href={`https://github.com/${username}`} 
+                        target="_blank"
+                        className="w-12 h-12 rounded-full border border-slate-700 overflow-hidden hover:scale-110 hover:border-blue-500 transition-all cursor-pointer bg-slate-800"
+                        title={username}
+                     >
+                        <img 
+                            src={`https://github.com/${username}.png`} 
+                            alt={username}
+                            className="w-full h-full object-cover opacity-70 hover:opacity-100 transition-opacity"
+                        />
+                     </a>
                  ))}
-                 <div className="w-12 h-12 rounded-full bg-slate-800 border border-dashed border-slate-600 flex items-center justify-center text-slate-500 hover:text-white hover:border-white transition-all cursor-pointer">
+                 
+                 <Link href="https://github.com/Tech-MSpace" target="_blank" className="w-12 h-12 rounded-full bg-slate-800 border border-dashed border-slate-600 flex items-center justify-center text-slate-500 hover:text-white hover:border-white transition-all cursor-pointer">
                     <div className="text-xl">+</div>
-                 </div>
-             </div>
+                 </Link>
+             </div> */}
 
              <div className="mt-12">
-                 <Link href="https://github.com/techmspace" target="_blank">
+                 <Link href="https://github.com/Tech-MSpace" target="_blank">
                     <Button variant="outline" className="border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800">
                         Become a Contributor
                     </Button>
                  </Link>
-             </div> */}
+             </div>
          </div>
       </section>
 
-      {/* 6. CTA */}
+      {/* 7. CTA */}
       <section className="py-24 px-6">
         <div className="container mx-auto max-w-4xl bg-gradient-to-br from-blue-900/20 to-indigo-900/20 rounded-3xl p-12 text-center border border-blue-500/30 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 blur-[100px] rounded-full" />
@@ -190,7 +284,7 @@ export default function AboutPage() {
             <div className="flex justify-center gap-4 relative z-10">
                 <Link href="/auth/register">
                     <Button className="h-14 px-8 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-full shadow-lg shadow-blue-500/20">
-                        Started Now
+                        Get Started Now
                     </Button>
                 </Link>
                 <Link href="/feedback">
@@ -202,7 +296,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* 7. FOOTER */}
+      {/* 8. FOOTER */}
       <footer className="py-12 bg-slate-950 border-t border-slate-900 text-slate-500 text-sm text-center">
         <div className="container mx-auto px-6">
              <div className="flex items-center justify-center gap-2 mb-4 text-slate-300">
@@ -218,7 +312,8 @@ export default function AboutPage() {
   );
 }
 
-// --- SUB COMPONENT ---
+// --- SUB COMPONENTS ---
+
 function ValueCard({ icon, title, desc }: { icon: any, title: string, desc: string }) {
     return (
         <div className="p-8 rounded-2xl bg-slate-900/50 border border-slate-800 hover:border-indigo-500/50 transition-colors group">
@@ -231,4 +326,12 @@ function ValueCard({ icon, title, desc }: { icon: any, title: string, desc: stri
             </p>
         </div>
     );
+}
+
+function SocialLink({ href, icon }: { href: string, icon: any }) {
+    return (
+        <a href={href} target="_blank" className="w-8 h-8 rounded-full bg-slate-900 flex items-center justify-center text-slate-400 hover:bg-white hover:text-slate-950 transition-all">
+            {icon}
+        </a>
+    )
 }
